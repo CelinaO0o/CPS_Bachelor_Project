@@ -1,4 +1,5 @@
 module Interpreter where
+import Data.Maybe ( fromMaybe )
 
 -- Non-CPS Interpreter 
 -- type Ident = String
@@ -41,25 +42,27 @@ data Expr = Const Int
           | App Expr [Expr]
           deriving Show
 
-data Value = NumVal Int | FunVal [Ident] Expr Env | ArgVals [Value]
+data Value = NumVal Int | VarVal String | FunVal [Ident] Expr Env 
     deriving Show
 
 type Env = [(Ident, Value)]
 
-type Cont = Value -> Value
+type Cont = [Value] -> Value
 
 eval :: Expr -> Env -> Cont -> Value
 eval (Const c) env k = k $ NumVal c
-eval (Var v) env k = k $ snd $ head $ filter (\(i, _) -> i == v) env
+-- eval (Var v) env k = k $ snd $ head $ filter (\(i, _) -> i == v) env
+eval (Var v) env k = k $ fromMaybe (VarVal v)  (lookup v env) -- what should be returned if v not in env?
 eval (Add e1 e2) env k = eval e1 env (\(NumVal left) -> eval e2 env (\(NumVal right) -> k (NumVal(left+right))))
 eval (Fun args e) env k = k $ FunVal args e env 
 eval (App fun args) env k = eval fun env (\(FunVal params exp env') -> 
-                            evalArgs args env [] (\(ArgVals argVals) -> 
+                            evalArgs args env (\(ArgVals argVals) -> 
                             eval exp (zip params argVals ++ env) k))
 
-evalArgs ::[Expr] -> Env -> [Value] -> Cont -> Value
-evalArgs (arg:args) env argVals k = eval arg env (\argVal -> evalArgs args env (argVal : argVals) k)
-evalArgs [] _ argVals k = k (ArgVals (reverse argVals))
+-- evalArgs ::[Expr] -> Env -> [Value] -> Cont -> Value
+evalArgs :: [Expr] -> Env -> Cont -> Value
+evalArgs (arg:args) env k = eval arg env (\argVal -> evalArgs args env k)
+evalArgs [] _  k = k (ArgVals (reverse argVals))
 
 
 {-- CPS Interpreter Version 1.(Cont-Monad)
