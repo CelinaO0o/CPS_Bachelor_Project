@@ -17,9 +17,9 @@ build-type:          Simple
 extra-source-files:  CHANGELOG.md
 
 executable haskell
-  main-is:             Interpreter.hs
+  main-is:             InterpreterMonadic.hs
   -- other-modules:
   -- other-extensions:
-  build-depends:       base
+  build-depends:       base, mtl
   -- hs-source-dirs:
   default-language:    Haskell2010
