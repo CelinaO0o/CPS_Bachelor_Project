@@ -23,7 +23,7 @@ type Cont b a = (a -> b) -> b
 
 eval :: Expr -> Env -> Cont Value Value
 eval (Const c) env k = k $ NumVal c
-eval (Var v) env k = k $ fromMaybe (VarVal v)  (lookup v env) -- what should be returned if v not in env?
+eval (Var v) env k = k $ fromMaybe (VarVal v)  (lookup v env) 
 eval (Add e1 e2) env k = eval e1 env (\(NumVal left) -> eval e2 env (\(NumVal right) -> k (NumVal(left+right))))
 eval (Fun params exp) env k = k $ FunVal params exp env 
 eval (App fun args) env k = eval fun env (\(FunVal params exp env') -> 

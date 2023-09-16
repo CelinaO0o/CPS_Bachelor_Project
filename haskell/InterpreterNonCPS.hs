@@ -1,17 +1,24 @@
 module InterpreterNonCPS where
+import qualified Data.Map as Map
 
 -- Non-CPS Interpreter 
 type Ident = String
+
+type Object = (Map Ident Expr)
+type ObjValue = (Map Ident Value)
 
 data Expr = Const Int
           | Var Ident
           | Add Expr Expr
           | Fun [Ident] Expr
           | App Expr [Expr]
-          deriving Show
+          | Obj Object
+  deriving Show
 
-data Value = NumVal Int | FunVal [Ident] Expr Env
-    deriving (Show)
+data Value = NumVal Int 
+           | FunVal [Ident] Expr Env
+           | ObjVal ObjValue
+  deriving (Show)
 
 type Env = [(Ident, Value)]
 
@@ -25,4 +32,4 @@ eval (Fun args e) env = FunVal args e env
 eval (App fun args) env = let FunVal ids e env' = eval fun env -- eval (App (Fun ["x", "y"] (Add (Var "x") (Var "y"))) [Const 1, Const 2]) []
                               args' = map (`eval` env) args in
                                 eval e (zip ids args' ++ env)
-                          
+eval (Obj o) env = ObjVal $ Map.fromList [(ident, eval expr env) | (ident, expr) <- Map.toList o]
