@@ -14,7 +14,7 @@ data Expr = Const Int
           | Fun [Ident] Expr
           | App Expr [Expr]
           | Obj Object
-          | GetField Object Ident
+          | GetField Expr Ident -- GetField Object Ident
   deriving Show
 
 data Value = NumVal Int
@@ -35,8 +35,13 @@ eval (Fun args e) env = FunVal args e env
 eval (App fun args) env = let FunVal ids e env' = eval fun env -- eval (App (Fun ["x", "y"] (Add (Var "x") (Var "y"))) [Const 1, Const 2]) []
                               args' = map (`eval` env) args in
                                 eval e (zip ids args' ++ env)
-eval (Obj o) env = ObjVal $ Map.fromList [(ident, eval expr env) | (ident, expr) <- Map.toList o]
-eval (GetField object field) env =  case eval (Obj object) env of
+eval (Obj obj) env = ObjVal $ Map.fromList [(ident, eval expr env) | (ident, expr) <- Map.toList obj]
+eval (GetField e field) env =  case eval e env of
   ObjVal fields -> case Map.lookup field fields of
     Just value -> value
-    Nothing -> error $ "Field not found: " ++ field
+    Nothing -> error "Field not found"
+  _ -> error "non-object value"
+-- doesn't support obj saved as var in env:
+-- eval (GetField obj field) env =  case eval (Obj obj) env of
+--   ObjVal fields -> case Map.lookup field fields of
+--     Just value -> value 
