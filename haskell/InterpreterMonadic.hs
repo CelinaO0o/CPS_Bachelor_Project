@@ -24,15 +24,15 @@ type Env = [(Ident, Value)]
 eval :: Expr -> Env -> ContT Value Maybe Value
 eval (Const c) env = return $ NumVal c
 eval (Var v) env = return $ fromMaybe (error "Field not found") (lookup v env)
-eval (Add e1 e2) env = do 
-    (NumVal left) <- eval e1 env
-    (NumVal right) <- eval e2 env 
+eval (Add expr1 expr2) env = do 
+    (NumVal left) <- eval expr1 env
+    (NumVal right) <- eval expr2 env 
     return (NumVal(left+right))
 eval (Fun params exp) env = return $ FunVal params exp env 
 eval (App fun args) env = do 
-    (FunVal params exp env') <- eval fun env 
+    (FunVal params expr env') <- eval fun env 
     argVals <- evalArgs args env
-    eval exp (zip params argVals ++ env')
+    eval expr (zip params argVals ++ env')
 
 evalArgs :: [Expr] -> Env -> ContT Value Maybe [Value]
 evalArgs [] _ = return []

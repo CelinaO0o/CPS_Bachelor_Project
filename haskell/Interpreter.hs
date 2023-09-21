@@ -30,11 +30,11 @@ type Cont b a = (a -> b) -> b
 eval :: Expr -> Env -> Cont Value Value
 eval (Const c) env k = k $ NumVal c
 eval (Var v) env k = k $ fromMaybe (error "Variable not found in environment")  (lookup v env) 
-eval (Add e1 e2) env k = eval e1 env (\(NumVal left) -> eval e2 env (\(NumVal right) -> k (NumVal(left+right))))
-eval (Fun params e) env k = k $ FunVal params e env 
-eval (App fun args) env k = eval fun env (\(FunVal params e env') -> 
+eval (Add expr1 expr2) env k = eval expr1 env (\(NumVal left) -> eval expr2 env (\(NumVal right) -> k (NumVal(left+right))))
+eval (Fun params expr) env k = k $ FunVal params expr env 
+eval (App fun args) env k = eval fun env (\(FunVal params expr env') -> 
                             evalArgs args env (\argVals-> 
-                            eval e (zip params argVals ++ env') k))
+                            eval expr (zip params argVals ++ env') k))
 -- TODO
 -- eval (Obj obj) env k = ObjVal $ Map.fromList [(ident, eval expr env) | (ident, expr) <- Map.toList obj]
 -- eval (GetField e field) env k =  case eval e env of
