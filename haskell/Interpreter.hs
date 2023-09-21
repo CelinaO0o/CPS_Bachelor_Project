@@ -37,12 +37,15 @@ eval (Obj obj) env k = evalFields obj env (k . ObjVal)
 -- eval (Field expr field) env k =  case eval expr env of
 --   ObjVal fields -> fromMaybe (error "Field not found") (lookup field fields)
 --   _ -> error "Non-object value"
+eval (Field expr field) env k =  case eval expr env k of
+  ObjVal fields -> k $ fromMaybe (error "Field not found") (lookup field fields)
+  _ -> k $ error "Non-object value"
 
 
 evalFields :: [(Ident, Expr)] -> Env -> Cont Value [(Ident, Value)]
 evalFields [] _ k = k []
 -- evalFields ((ident, expr):xs) env k = evalFields xs env (\rest -> k ((ident, eval expr env k) : rest))
-evalFields ((ident, expr):xs) env k = eval expr env (\exprVal -> evalFields xs env (\restFields -> k ((ident, exprVal) : restFields)))
+evalFields ((ident, expr):xs) env k = eval (Field expr ident) env (\exprVal -> evalFields xs env (\restFields -> k ((ident, exprVal) : restFields)))
 
 evalArgs :: [Expr] -> Env -> Cont Value [Value]
 evalArgs [] _ k = k []
