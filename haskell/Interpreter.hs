@@ -19,7 +19,6 @@ data Expr = Const Int
   deriving Show
 
 data Value = NumVal Int
-           | VarVal Ident 
            | FunVal [Ident] Expr Env 
            | ObjVal ObjValue
   deriving (Show)
@@ -30,7 +29,7 @@ type Cont b a = (a -> b) -> b
 
 eval :: Expr -> Env -> Cont Value Value
 eval (Const c) env k = k $ NumVal c
-eval (Var v) env k = k $ fromMaybe (VarVal v)  (lookup v env) 
+eval (Var v) env k = k $ fromMaybe (error "Variable not found in environment")  (lookup v env) 
 eval (Add e1 e2) env k = eval e1 env (\(NumVal left) -> eval e2 env (\(NumVal right) -> k (NumVal(left+right))))
 eval (Fun params e) env k = k $ FunVal params e env 
 eval (App fun args) env k = eval fun env (\(FunVal params e env') -> 
