@@ -9,7 +9,7 @@ import Data.Maybe
 import Control.Monad.Cont
 
 main :: IO ()
-main = testMonadicCPS
+main = testMonadicCPS -- TODO get rid of this giant copy paste mess
 
 
 testNonCPS :: IO ()
@@ -72,7 +72,7 @@ testNonCPS = do
     putStrLn $ "object2 field1: " ++ show (NonCPS.eval field21 env)
     putStrLn $ "object2 field2: " ++ show (NonCPS.eval field22 env)
 
-testCPS :: IO ()
+testCPS :: IO () 
 testCPS = do
     putStrLn "\n-------- Constant evaluation: ----------------------------"
     putStr $ "5 = " ++ show (CPS.eval (CPS.Const 5) [] id)
@@ -128,36 +128,36 @@ testCPS = do
     putStrLn $ "object2 field2: " ++ show (CPS.eval field22 env id)
 
 
--- testMonadicCPS :: IO ()
--- testMonadicCPS = do
---     putStrLn "\n-------- Constant evaluation: ----------------------------"
---     putStr $ "5 = " ++ show (runCont $ Monadic.eval (Monadic.Const 5) [])
+testMonadicCPS :: IO () -- (runContT ... Just) kanns doch nicht sein TODO
+testMonadicCPS = do
+    putStrLn "\n-------- Constant evaluation: ----------------------------"
+    putStr $ "5 = " ++ show (runContT (Monadic.eval (Monadic.Const 5) []) Just)
     
---     putStrLn "\n-------- Variable evaluation: ----------------------------"
---     putStrLn "Let [(x = 3), (y = 7)]"
---     putStr $ "x = " ++ show (Monadic.eval (Monadic.Var "x") [("x", Monadic.NumVal 3), ("y", Monadic.NumVal 7)])
+    putStrLn "\n-------- Variable evaluation: ----------------------------"
+    putStrLn "Let [(x = 3), (y = 7)]"
+    putStr $ "x = " ++ show (runContT (Monadic.eval (Monadic.Var "x") [("x", Monadic.NumVal 3), ("y", Monadic.NumVal 7)]) Just)
     
---     putStrLn "\n-------- Addition evaluation: ----------------------------"
---     putStrLn "Let [(x = 3), (y = 5)]"
---     putStr "3 + y = "
---     print $ Monadic.eval (Monadic.Add (Monadic.Const 3) (Monadic.Var "y")) [("x", Monadic.NumVal 3), ("y", Monadic.NumVal 5)]
---     putStr "x + 5 = "
---     print $ Monadic.eval (Monadic.Add (Monadic.Var "x") (Monadic.Const 5)) [("x", Monadic.NumVal 3), ("y", Monadic.NumVal 5)]
---     putStr "x + y = "
---     print $ Monadic.eval (Monadic.Add (Monadic.Var "x") (Monadic.Var "y")) [("x", Monadic.NumVal 3), ("y", Monadic.NumVal 5)]
+    putStrLn "\n-------- Addition evaluation: ----------------------------"
+    putStrLn "Let [(x = 3), (y = 5)]"
+    putStr "3 + y = "
+    print $ runContT (Monadic.eval (Monadic.Add (Monadic.Const 3) (Monadic.Var "y")) [("x", Monadic.NumVal 3), ("y", Monadic.NumVal 5)]) Just
+    putStr "x + 5 = "
+    print $ runContT (Monadic.eval (Monadic.Add (Monadic.Var "x") (Monadic.Const 5)) [("x", Monadic.NumVal 3), ("y", Monadic.NumVal 5)]) Just
+    putStr "x + y = "
+    print $ runContT (Monadic.eval (Monadic.Add (Monadic.Var "x") (Monadic.Var "y")) [("x", Monadic.NumVal 3), ("y", Monadic.NumVal 5)]) Just
     
---     putStrLn "\n-------- Function evaluation: ----------------------------"
---     let f = Monadic.Fun ["x", "y"] (Monadic.Add (Monadic.Var "x") (Monadic.Var "y")) 
---     putStr $ "f(x,y) = " ++ show (Monadic.eval f [])
+    putStrLn "\n-------- Function evaluation: ----------------------------"
+    let f = Monadic.Fun ["x", "y"] (Monadic.Add (Monadic.Var "x") (Monadic.Var "y")) 
+    putStr $ "f(x,y) = " ++ show (runContT (Monadic.eval f []) Just)
 
---     putStrLn "now let [(x = 7)]"
---     putStr $ "f(x,y) = " ++ show (Monadic.eval f [("x", Monadic.NumVal 7)])
+    putStrLn "now let [(x = 7)]"
+    putStr $ "f(x,y) = " ++ show (runContT (Monadic.eval f [("x", Monadic.NumVal 7)]) Just)
     
---     putStrLn "\n-------- Function application evaluation: ----------------"
---     putStr "f(x=1,y=2) = "
---     print $ Monadic.eval (Monadic.App f [Monadic.Const 1, Monadic.Const 2]) []
+    putStrLn "\n-------- Function application evaluation: ----------------"
+    putStr "f(x=1,y=2) = "
+    print $ runContT (Monadic.eval (Monadic.App f [Monadic.Const 1, Monadic.Const 2]) []) Just
 
---     putStrLn "now let [(x = 7)]"
---     putStr "f(x=1,y=2) = "
---     print $ Monadic.eval (Monadic.App f [Monadic.Const 1, Monadic.Const 2]) [("x", Monadic.NumVal 7)]
+    putStrLn "now let [(x = 7)]"
+    putStr "f(x=1,y=2) = "
+    print $ runContT (Monadic.eval (Monadic.App f [Monadic.Const 1, Monadic.Const 2]) [("x", Monadic.NumVal 7)]) Just
 
