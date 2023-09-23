@@ -30,6 +30,16 @@
   (major1) == 0 && (major2) <  6 || \
   (major1) == 0 && (major2) == 6 && (minor) <= 5)
 #endif /* MIN_VERSION_containers */
+/* package ghc-heap-9.2.8 */
+#ifndef VERSION_ghc_heap
+#define VERSION_ghc_heap "9.2.8"
+#endif /* VERSION_ghc_heap */
+#ifndef MIN_VERSION_ghc_heap
+#define MIN_VERSION_ghc_heap(major1,major2,minor) (\
+  (major1) <  9 || \
+  (major1) == 9 && (major2) <  2 || \
+  (major1) == 9 && (major2) == 2 && (minor) <= 8)
+#endif /* MIN_VERSION_ghc_heap */
 /* package mtl-2.2.2 */
 #ifndef VERSION_mtl
 #define VERSION_mtl "2.2.2"

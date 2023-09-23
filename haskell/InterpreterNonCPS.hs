@@ -2,7 +2,6 @@ module InterpreterNonCPS where
 import qualified Data.Map as Map
 import Data.Maybe
 import Control.Monad.Cont
-import GHC.Exts.Heap (GenClosure(value))
 
 -- Non-CPS Interpreter 
 type Ident = String

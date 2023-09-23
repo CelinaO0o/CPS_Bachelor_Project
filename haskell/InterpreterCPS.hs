@@ -1,4 +1,4 @@
-module Interpreter where
+module InterpreterCPS where
 import Data.Maybe ( fromMaybe )
 import Control.Monad.Cont (ContT)
 import qualified Data.Map as Map

@@ -1,4 +1,4 @@
-module Main where
+module CPS_exercises where
 
 main :: IO ()
 main = 
