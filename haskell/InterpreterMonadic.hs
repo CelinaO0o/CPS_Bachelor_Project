@@ -12,10 +12,13 @@ data Expr = Const Int
           | Add Expr Expr
           | Fun [Ident] Expr
           | App Expr [Expr]
+          | Obj [(Ident, Expr)]
+          | Field Expr Ident
           deriving Show
 
 data Value = NumVal Int
            | FunVal [Ident] Expr Env
+           | ObjVal [(Ident, Value)]
     deriving Show
 
 type Env = [(Ident, Value)]
@@ -33,6 +36,13 @@ eval (App fun args) env = do
     (FunVal params expr env') <- eval fun env 
     argVals <- evalArgs args env
     eval expr (zip params argVals ++ env')
+eval (Obj obj) env = do
+    objVals <- evalFields obj env 
+    return (ObjVal objVals)
+-- why does eval (Obj obj) env = return (ObjVal evalFields obj env) not work?
+-- eval (Field expr field) env =  case eval expr env of
+--   ObjVal fields -> return $ fromMaybe (error "Field not found") (lookup field fields)
+--   _ -> return $ error "Non-object value"
 
 evalArgs :: [Expr] -> Env -> ContT Value Maybe [Value]
 evalArgs [] _ = return []
@@ -40,6 +50,13 @@ evalArgs (arg : args) env = do
     argValue <- eval arg env
     restArgs <- evalArgs args env
     return (argValue : restArgs)
+
+evalFields :: [(Ident, Expr)] -> Env -> ContT Value Maybe [(Ident, Value)]
+evalFields [] _ = return [] 
+evalFields ((ident, expr):xs) env = do 
+    exprVal <- eval (Field expr ident) env
+    restFields <- evalFields xs env
+    return ((ident, exprVal) : restFields)
 
 
 --TODO: reader-monad

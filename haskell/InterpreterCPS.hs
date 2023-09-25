@@ -32,22 +32,15 @@ eval (Fun params expr) env k = k $ FunVal params expr env
 eval (App fun args) env k = eval fun env (\(FunVal params expr env') ->
                             evalArgs args env (\argVals->
                             eval expr (zip params argVals ++ env') k))
--- eval (Obj obj) env k = ObjVal $ [(ident, eval expr env) | (ident, expr) <- obj]
-eval (Obj obj) env k = evalFields obj env (k . ObjVal)
--- eval (Field expr field) env k =  case eval expr env of
---   ObjVal fields -> fromMaybe (error "Field not found") (lookup field fields)
---   _ -> error "Non-object value"
+eval (Obj obj) env k = evalFields obj env (k . ObjVal) -- \objVal -> k $ ObjVal objVal
 eval (Field expr field) env k =  case eval expr env k of
   ObjVal fields -> k $ fromMaybe (error "Field not found") (lookup field fields)
   _ -> k $ error "Non-object value"
-
-
-evalFields :: [(Ident, Expr)] -> Env -> Cont Value [(Ident, Value)]
-evalFields [] _ k = k []
--- evalFields ((ident, expr):xs) env k = evalFields xs env (\rest -> k ((ident, eval expr env k) : rest))
-evalFields ((ident, expr):xs) env k = eval (Field expr ident) env (\exprVal -> evalFields xs env (\restFields -> k ((ident, exprVal) : restFields)))
 
 evalArgs :: [Expr] -> Env -> Cont Value [Value]
 evalArgs [] _ k = k []
 evalArgs (arg : args) env k = eval arg env (\argValue -> evalArgs args env (\restArgs -> k (argValue : restArgs)))
 
+evalFields :: [(Ident, Expr)] -> Env -> Cont Value [(Ident, Value)]
+evalFields [] _ k = k []
+evalFields ((ident, expr):xs) env k = eval (Field expr ident) env (\exprVal -> evalFields xs env (\restFields -> k ((ident, exprVal) : restFields)))
