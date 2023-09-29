@@ -14,12 +14,12 @@ data Expr = Const Int
           | App Expr [Expr]
           | Obj [(Ident, Expr)]
           | Field Expr Ident
-          deriving Show
+    deriving (Show)
 
 data Value = NumVal Int
            | FunVal [Ident] Expr Env
            | ObjVal [(Ident, Value)]
-    deriving Show
+    deriving (Show)
 
 type Env = [(Ident, Value)]
 
@@ -39,10 +39,19 @@ eval (App fun args) env = do
 eval (Obj obj) env = do
     objVals <- evalFields obj env 
     return (ObjVal objVals)
--- why does eval (Obj obj) env = return (ObjVal evalFields obj env) not work?
--- eval (Field expr field) env =  case eval expr env of
---   ObjVal fields -> return $ fromMaybe (error "Field not found") (lookup field fields)
---   _ -> return $ error "Non-object value"
+-- why does eval (Obj obj) env = return (ObjVal (evalFields obj env)) not work?
+eval (Field expr field) env = do
+    fieldVal <- eval expr env
+    case fieldVal of-- TODO make this ... prettier.
+        ObjVal fields -> return $ fromMaybe (error "Field not found") (lookup field fields)
+        _ -> return $ error "Non-object value"
+-- eval (Field expr field) env = do
+--     fieldVal <- eval expr env
+--     case fieldVal of
+--         ObjVal fields -> case lookup field fields of
+--             Just value -> return value
+--             Nothing -> return $ error "no value"
+--         _ -> return $ error "no object"
 
 evalArgs :: [Expr] -> Env -> ContT Value Maybe [Value]
 evalArgs [] _ = return []
@@ -59,5 +68,5 @@ evalFields ((ident, expr):xs) env = do
     return ((ident, exprVal) : restFields)
 
 
---TODO: reader-monad
+--TODO?: reader-monad
 -- eval :: Expr -> Env -> ContT Value (Reader Env) Value

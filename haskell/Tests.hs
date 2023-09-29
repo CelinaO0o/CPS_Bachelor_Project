@@ -9,7 +9,7 @@ import Data.Maybe
 import Control.Monad.Cont
 
 main :: IO ()
-main = testMonadicCPS -- TODO get rid of this giant copy paste mess
+main = testMonadicCPS -- TODO get rid of this giant copy paste mess, maybe asserts
 
 
 testNonCPS :: IO ()
@@ -160,4 +160,26 @@ testMonadicCPS = do
     putStrLn "now let [(x = 7)]"
     putStr "f(x=1,y=2) = "
     print $ runContT (Monadic.eval (Monadic.App f [Monadic.Const 1, Monadic.Const 2]) [("x", Monadic.NumVal 7)]) Just
+
+    putStrLn "\n-------- Object evaluation: ------------------------------"
+    let obj1 = Monadic.Obj [("field1", Monadic.Const 42), ("field2", Monadic.Const 99)]
+    putStr "obj1 = "
+    print $ runContT (Monadic.eval obj1 []) Just
+
+    putStrLn " now let [(x = 5)]"
+    let obj2 = Monadic.Obj [("field1", Monadic.Var "x"), ("field2", f)]
+    putStr "obj2 = "
+    print $ runContT (Monadic.eval obj2 [("x", Monadic.NumVal 5)]) Just 
+
+    -- putStrLn "\n-------- Object field evaluation: ------------------------"
+    -- putStrLn "let [(obj1 = ...), (obj2 = ...)]"
+    -- let env = [("obj1", Monadic.eval obj1 []), ("obj2", Monadic.eval obj2 [("x", Monadic.NumVal 5)])]
+    -- let field11 = Monadic.Field (Monadic.Var "obj1") "field1"
+    -- let field12 = Monadic.Field (Monadic.Var "obj1") "field2"
+    -- let field21 = Monadic.Field (Monadic.Var "obj2") "field1"
+    -- let field22 = Monadic.Field (Monadic.Var "obj2") "field2"
+    -- putStrLn $ "object1 field1: " ++ show (Monadic.eval field11 env)
+    -- putStrLn $ "object1 field2: " ++ show (Monadic.eval field12 env)
+    -- putStrLn $ "object2 field1: " ++ show (Monadic.eval field21 env)
+    -- putStrLn $ "object2 field2: " ++ show (Monadic.eval field22 env)
 
