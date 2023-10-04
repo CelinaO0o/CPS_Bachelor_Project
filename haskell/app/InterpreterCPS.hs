@@ -1,6 +1,5 @@
 module InterpreterCPS where
 import Data.Maybe ( fromMaybe )
-import Control.Monad.Cont (ContT)
 import qualified Data.Map as Map
 
 -- CPS Interpreter, explicit Cont

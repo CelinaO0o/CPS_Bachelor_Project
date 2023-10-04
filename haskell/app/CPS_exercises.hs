@@ -1,12 +1,5 @@
 module CPS_exercises where
 
-main :: IO ()
-main = 
-    print $ (\x y k -> q y (\k1 -> p (+ 8 x) k1 k)) 5 4 (\x -> x)
-    where 
-        q a k = k (-a)
-        p a b k = k (a * b)
-
 factorial :: Integral a => a -> a
 factorial 0 = 1
 factorial n = n * factorial (n-1)

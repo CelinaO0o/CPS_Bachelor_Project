@@ -5,8 +5,8 @@ import InterpreterCPS as CPS
 import InterpreterMonadic as Monadic
 import qualified Data.Map as Map
 import Data.Maybe
-import Control.Monad.Cont
--- import Test.QuickCheck TODO get this to install
+import Test.QuickCheck
+import Control.Monad.Trans.Cont
 
 testAll :: IO ()
 testAll = do 

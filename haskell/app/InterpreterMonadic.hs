@@ -1,8 +1,7 @@
 module InterpreterMonadic where
 import Data.Maybe ( fromMaybe )
-import Control.Monad.Cont (ContT (runContT))
-import Control.Monad.Reader (Reader)
 import Control.Monad
+import Control.Monad.Trans.Cont (ContT)
 
 -- CPS Interpreter, monadic
 

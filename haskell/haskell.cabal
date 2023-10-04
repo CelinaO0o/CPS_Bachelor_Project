@@ -20,6 +20,6 @@ executable haskell
   main-is:             Tests.hs
   other-modules:       InterpreterNonCPS, InterpreterCPS, InterpreterMonadic
   -- other-extensions:
-  build-depends:       base, mtl, containers, ghc-heap, QuickCheck
-  -- hs-source-dirs:
+  build-depends:       base, mtl, containers, ghc-heap, QuickCheck, transformers
+  hs-source-dirs:      app
   default-language:    Haskell2010

@@ -1,7 +1,6 @@
 module InterpreterNonCPS where
 import qualified Data.Map as Map
 import Data.Maybe
-import Control.Monad.Cont
 
 -- Non-CPS Interpreter 
 type Ident = String
