@@ -38,9 +38,11 @@ eval (Field expr field) env k =  case eval expr env k of
   _ -> k $ error "Non-object value"
 
 evalArgs :: [Expr] -> Env -> Cont Value [Value]
-evalArgs [] _ k = k []
-evalArgs (arg : args) env k = eval arg env (\argValue -> evalArgs args env (\restArgs -> k (argValue : restArgs)))
+-- evalArgs [] _ k = k []
+-- evalArgs (arg : args) env k = eval arg env (\argValue -> evalArgs args env (\restArgs -> k (argValue : restArgs)))
+evalArgs args env k = k $ map (\arg -> eval arg env id) args
 
 evalFields :: [(Ident, Expr)] -> Env -> Cont Value [(Ident, Value)]
-evalFields [] _ k = k []
-evalFields ((ident, expr):xs) env k = eval (Field expr ident) env (\exprVal -> evalFields xs env (\restFields -> k ((ident, exprVal) : restFields)))
+-- evalFields [] _ k = k []
+-- evalFields ((ident, expr):xs) env k = eval expr env (\exprVal -> evalFields xs env (\restFields -> k ((ident, exprVal) : restFields)))
+evalFields fields env k = k $ map (\(ident, expr) -> (ident, eval expr env id)) fields

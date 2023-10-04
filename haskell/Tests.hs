@@ -3,13 +3,19 @@ module Tests where
 import InterpreterNonCPS as NonCPS
 import InterpreterCPS as CPS
 import InterpreterMonadic as Monadic
-
 import qualified Data.Map as Map
 import Data.Maybe
 import Control.Monad.Cont
+-- import Test.QuickCheck TODO get this to install
 
-main :: IO ()
-main = testMonadicCPS -- TODO get rid of this giant copy paste mess, maybe asserts
+testAll :: IO ()
+testAll = do 
+    putStrLn "\n-------- Non CPS Interpreter: ------------------------------------------\n"
+    testNonCPS
+    putStrLn "\n-------- Explicit CPS Interpreter: -------------------------------------\n"
+    testCPS
+    putStrLn "\n-------- Monadic CPS Interpreter: --------------------------------------\n"
+    testMonadicCPS
 
 
 testNonCPS :: IO ()
@@ -17,7 +23,6 @@ testNonCPS = do
 
     -- let eval = NonCPS.eval 
     --     Const = NonCPS.Const -- won't work TODO
-
     
     putStrLn "\n-------- Constant evaluation: ----------------------------"
     putStr $ "5 = " ++ show (NonCPS.eval (NonCPS.Const 5) [])
@@ -163,23 +168,30 @@ testMonadicCPS = do
 
     putStrLn "\n-------- Object evaluation: ------------------------------"
     let obj1 = Monadic.Obj [("field1", Monadic.Const 42), ("field2", Monadic.Const 99)]
+    let obj1Val = fromMaybe (error "Field not found") (runContT (Monadic.eval obj1 []) Just)
     putStr "obj1 = "
-    print $ runContT (Monadic.eval obj1 []) Just
+    print obj1Val
 
     putStrLn " now let [(x = 5)]"
     let obj2 = Monadic.Obj [("field1", Monadic.Var "x"), ("field2", f)]
+    let obj2Val = fromMaybe (error "Field not found") (runContT (Monadic.eval obj2 [("x", Monadic.NumVal 5)]) Just)
     putStr "obj2 = "
-    print $ runContT (Monadic.eval obj2 [("x", Monadic.NumVal 5)]) Just 
+    print obj2Val
 
-    -- putStrLn "\n-------- Object field evaluation: ------------------------"
-    -- putStrLn "let [(obj1 = ...), (obj2 = ...)]"
-    -- let env = [("obj1", Monadic.eval obj1 []), ("obj2", Monadic.eval obj2 [("x", Monadic.NumVal 5)])]
-    -- let field11 = Monadic.Field (Monadic.Var "obj1") "field1"
-    -- let field12 = Monadic.Field (Monadic.Var "obj1") "field2"
-    -- let field21 = Monadic.Field (Monadic.Var "obj2") "field1"
-    -- let field22 = Monadic.Field (Monadic.Var "obj2") "field2"
-    -- putStrLn $ "object1 field1: " ++ show (Monadic.eval field11 env)
-    -- putStrLn $ "object1 field2: " ++ show (Monadic.eval field12 env)
-    -- putStrLn $ "object2 field1: " ++ show (Monadic.eval field21 env)
-    -- putStrLn $ "object2 field2: " ++ show (Monadic.eval field22 env)
+    putStrLn "\n-------- Object field evaluation: ------------------------"
+    putStrLn "let [(obj1 = ...), (obj2 = ...)]"
+    let env = [("obj1", obj1Val), ("obj2",obj2Val)]
+    let field11 = Monadic.Field (Monadic.Var "obj1") "field1"
+    let field12 = Monadic.Field (Monadic.Var "obj1") "field2"
+    let field21 = Monadic.Field (Monadic.Var "obj2") "field1"
+    let field22 = Monadic.Field (Monadic.Var "obj2") "field2"
+    putStr "object1 field11: "
+    print $ fromMaybe (error "Field not found") (runContT (Monadic.eval field11 env) Just)
+    putStr "object1 field12: "
+    print $ fromMaybe (error "Field not found") (runContT (Monadic.eval field12 env) Just)
+    putStr "object1 field21: "
+    print $ fromMaybe (error "Field not found") (runContT (Monadic.eval field21 env) Just)
+    putStr "object1 field22: "
+    print $ fromMaybe (error "Field not found") (runContT (Monadic.eval field22 env) Just)
+
 

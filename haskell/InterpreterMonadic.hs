@@ -2,6 +2,7 @@ module InterpreterMonadic where
 import Data.Maybe ( fromMaybe )
 import Control.Monad.Cont (ContT (runContT))
 import Control.Monad.Reader (Reader)
+import Control.Monad
 
 -- CPS Interpreter, monadic
 
@@ -27,17 +28,17 @@ type Env = [(Ident, Value)]
 eval :: Expr -> Env -> ContT Value Maybe Value
 eval (Const c) env = return $ NumVal c
 eval (Var v) env = return $ fromMaybe (error "Field not found") (lookup v env)
-eval (Add expr1 expr2) env = do 
+eval (Add expr1 expr2) env = do
     (NumVal left) <- eval expr1 env
-    (NumVal right) <- eval expr2 env 
-    return (NumVal(left+right))
-eval (Fun params exp) env = return $ FunVal params exp env 
-eval (App fun args) env = do 
-    (FunVal params expr env') <- eval fun env 
+    (NumVal right) <- eval expr2 env
+    return (NumVal (left+right))
+eval (Fun params exp) env = return $ FunVal params exp env
+eval (App fun args) env = do
+    (FunVal params expr env') <- eval fun env
     argVals <- evalArgs args env
     eval expr (zip params argVals ++ env')
 eval (Obj obj) env = do
-    objVals <- evalFields obj env 
+    objVals <- evalFields obj env
     return (ObjVal objVals)
 -- why does eval (Obj obj) env = return (ObjVal (evalFields obj env)) not work?
 eval (Field expr field) env = do
@@ -54,19 +55,12 @@ eval (Field expr field) env = do
 --         _ -> return $ error "no object"
 
 evalArgs :: [Expr] -> Env -> ContT Value Maybe [Value]
-evalArgs [] _ = return []
-evalArgs (arg : args) env = do 
-    argValue <- eval arg env
-    restArgs <- evalArgs args env
-    return (argValue : restArgs)
+evalArgs args env = mapM (`eval` env) args
 
 evalFields :: [(Ident, Expr)] -> Env -> ContT Value Maybe [(Ident, Value)]
-evalFields [] _ = return [] 
-evalFields ((ident, expr):xs) env = do 
-    exprVal <- eval (Field expr ident) env
-    restFields <- evalFields xs env
-    return ((ident, exprVal) : restFields)
+evalFields fields env = zipWithM (\(ident, expr) _ -> do
+                                      exprVal <- eval expr env
+                                      return (ident, exprVal))
+                                   fields [0..]
 
 
---TODO?: reader-monad
--- eval :: Expr -> Env -> ContT Value (Reader Env) Value
