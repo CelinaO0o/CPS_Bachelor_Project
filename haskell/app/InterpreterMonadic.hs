@@ -14,12 +14,12 @@ data Expr = Const Int
           | App Expr [Expr]
           | Obj [(Ident, Expr)]
           | Field Expr Ident
-    deriving (Show)
+    deriving (Show, Eq)
 
 data Value = NumVal Int
            | FunVal [Ident] Expr Env
            | ObjVal [(Ident, Value)]
-    deriving (Show)
+    deriving (Show, Eq)
 
 type Env = [(Ident, Value)]
 

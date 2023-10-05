@@ -10,12 +10,12 @@ import Control.Monad.Trans.Cont
 
 testAll :: IO ()
 testAll = do 
-    putStrLn "\n-------- Non CPS Interpreter: ------------------------------------------\n"
+    putStrLn "\n-------- Non CPS Interpreter: ------------------------------------------"
     testNonCPS
-    putStrLn "\n-------- Explicit CPS Interpreter: -------------------------------------\n"
-    testCPS
-    putStrLn "\n-------- Monadic CPS Interpreter: --------------------------------------\n"
-    testMonadicCPS
+    putStrLn "\n-------- Explicit CPS Interpreter: -------------------------------------"
+    testExplicit
+    putStrLn "\n-------- Monadic CPS Interpreter: --------------------------------------"
+    testMonadic
 
 
 testNonCPS :: IO ()
@@ -25,173 +25,159 @@ testNonCPS = do
     --     Const = NonCPS.Const -- won't work TODO
     
     putStrLn "\n-------- Constant evaluation: ----------------------------"
-    putStr $ "5 = " ++ show (NonCPS.eval (NonCPS.Const 5) [])
+    let prop_const0 x = NonCPS.eval (NonCPS.Const x) [] == NonCPS.NumVal x
+    quickCheck prop_const0
+    let prop_const1 x z = NonCPS.eval (NonCPS.Const x) [("z", NonCPS.NumVal z)] == NonCPS.NumVal x
+    quickCheck prop_const1
     
     putStrLn "\n-------- Variable evaluation: ----------------------------"
-    putStrLn "Let [(x = 3), (y = 7)]"
-    putStr $ "x = " ++ show (NonCPS.eval (NonCPS.Var "x") [("x", NonCPS.NumVal 3), ("y", NonCPS.NumVal 7)])
-    
+    let prop_var x y = NonCPS.eval (NonCPS.Var "x") [("x", NonCPS.NumVal x), ("y", NonCPS.NumVal y)] == NonCPS.NumVal x
+    quickCheck prop_var
+
     putStrLn "\n-------- Addition evaluation: ----------------------------"
-    putStrLn "Let [(x = 3), (y = 5)]"
-    putStr "3 + y = "
-    print $ NonCPS.eval (NonCPS.Add (NonCPS.Const 3) (NonCPS.Var "y")) [("x", NonCPS.NumVal 3), ("y", NonCPS.NumVal 5)]
-    putStr "x + 5 = "
-    print $ NonCPS.eval (NonCPS.Add (NonCPS.Var "x") (NonCPS.Const 5)) [("x", NonCPS.NumVal 3), ("y", NonCPS.NumVal 5)]
-    putStr "x + y = "
-    print $ NonCPS.eval (NonCPS.Add (NonCPS.Var "x") (NonCPS.Var "y")) [("x", NonCPS.NumVal 3), ("y", NonCPS.NumVal 5)]
-    
+    let prop_add0 x y = NonCPS.eval (NonCPS.Add (NonCPS.Const x) (NonCPS.Const y)) [("z", NonCPS.NumVal 4)] == NonCPS.NumVal (x+y)
+    quickCheck prop_add0
+    let prop_add1 x y = NonCPS.eval (NonCPS.Add (NonCPS.Const x) (NonCPS.Var "y")) [("z", NonCPS.NumVal 5), ("y", NonCPS.NumVal y)] == NonCPS.NumVal (x+y)
+    quickCheck prop_add1
+    let prop_add2 x y = NonCPS.eval (NonCPS.Add (NonCPS.Var "x") (NonCPS.Var "y")) [("x", NonCPS.NumVal x), ("y", NonCPS.NumVal y)] == NonCPS.NumVal (x+y)
+    quickCheck prop_add2
+
     putStrLn "\n-------- Function evaluation: ----------------------------"
-    let f = NonCPS.Fun ["x", "y"] (NonCPS.Add (NonCPS.Var "x") (NonCPS.Var "y")) 
-    putStr $ "f(x,y) = " ++ show (NonCPS.eval f [])
+    let f = NonCPS.Fun ["x", "y"] (NonCPS.Add (NonCPS.Var "x") (NonCPS.Var "y"))
+    let prop_fun0 x y = NonCPS.eval f [("x", NonCPS.NumVal x), ("y", NonCPS.NumVal y)] == NonCPS.FunVal ["x", "y"] (NonCPS.Add (NonCPS.Var "x") (NonCPS.Var "y")) [("x", NonCPS.NumVal x), ("y", NonCPS.NumVal y)]
+    quickCheck prop_fun0
 
-    putStrLn "now let [(x = 7)]"
-    putStr $ "f(x,y) = " ++ show (NonCPS.eval f [("x", NonCPS.NumVal 7)])
-    
     putStrLn "\n-------- Function application evaluation: ----------------"
-    putStr "f(x=1,y=2) = "
-    print $ NonCPS.eval (NonCPS.App f [NonCPS.Const 1, NonCPS.Const 2]) []
-
-    putStrLn "now let [(x = 7)]"
-    putStr "f(x=1,y=2) = "
-    print $ NonCPS.eval (NonCPS.App f [NonCPS.Const 1, NonCPS.Const 2]) [("x", NonCPS.NumVal 7)]
-
+    let prop_funapp0 x y = NonCPS.eval (NonCPS.App f [NonCPS.Var "x", NonCPS.Var "y"]) [("x", NonCPS.NumVal x), ("y", NonCPS.NumVal y)] == NonCPS.eval (NonCPS.Add (NonCPS.Const x) (NonCPS.Const y)) []
+    quickCheck prop_funapp0
+    
     putStrLn "\n-------- Object evaluation: ------------------------------"
-    let obj1 = NonCPS.Obj [("field1", NonCPS.Const 42), ("field2", NonCPS.Const 99)]
-    putStr "obj1 = "
-    print $ NonCPS.eval obj1 []
-
-    putStrLn " now let [(x = 5)]"
-    let obj2 = NonCPS.Obj [("field1", NonCPS.Var "x"), ("field2", f)]
-    putStr "obj2 = "
-    print $ NonCPS.eval obj2 [("x", NonCPS.NumVal 5)]
+    let obj0 = NonCPS.Obj [("field0", NonCPS.Const 42), ("field1", NonCPS.Const 99)]
+    let prop_obj0 x = NonCPS.eval obj0 [("x", NonCPS.NumVal x)] == NonCPS.ObjVal [("field0", NonCPS.NumVal 42), ("field1", NonCPS.NumVal 99)]
+    quickCheck prop_obj0
+    let obj1 = NonCPS.Obj [("field0", NonCPS.Var "x"), ("field1", f)]
+    let prop_obj1 x y = NonCPS.eval obj1 [("x", NonCPS.NumVal x), ("y", NonCPS.NumVal y)] == NonCPS.ObjVal [("field0", NonCPS.NumVal x), ("field1", NonCPS.eval f [("x", NonCPS.NumVal x), ("y", NonCPS.NumVal y)])]
+    quickCheck prop_obj1
 
     putStrLn "\n-------- Object field evaluation: ------------------------"
-    putStrLn "let [(obj1 = ...), (obj2 = ...)]"
-    let env = [("obj1", NonCPS.eval obj1 []), ("obj2", NonCPS.eval obj2 [("x", NonCPS.NumVal 5)])]
+    let env x y = [("obj0", NonCPS.eval obj0 []), ("obj1", NonCPS.eval obj1 [("x", NonCPS.NumVal x), ("y", NonCPS.NumVal y)])]
+    let field00 = NonCPS.Field (NonCPS.Var "obj0") "field0"
+    let prop_field01 x y = NonCPS.eval field00 (env x y) == NonCPS.NumVal 42
+    quickCheck prop_field01
+    let field01 = NonCPS.Field (NonCPS.Var "obj0") "field1"
+    let prop_field01 x y = NonCPS.eval field01 (env x y) == NonCPS.NumVal 99
+    quickCheck prop_field01
+    let field10 = NonCPS.Field (NonCPS.Var "obj1") "field0"
+    let prop_field01 x y = NonCPS.eval field10 (env x y) == NonCPS.NumVal x
+    quickCheck prop_field01
     let field11 = NonCPS.Field (NonCPS.Var "obj1") "field1"
-    let field12 = NonCPS.Field (NonCPS.Var "obj1") "field2"
-    let field21 = NonCPS.Field (NonCPS.Var "obj2") "field1"
-    let field22 = NonCPS.Field (NonCPS.Var "obj2") "field2"
-    putStrLn $ "object1 field1: " ++ show (NonCPS.eval field11 env)
-    putStrLn $ "object1 field2: " ++ show (NonCPS.eval field12 env)
-    putStrLn $ "object2 field1: " ++ show (NonCPS.eval field21 env)
-    putStrLn $ "object2 field2: " ++ show (NonCPS.eval field22 env)
+    let prop_field01 x y = NonCPS.eval field11 (env x y) == NonCPS.FunVal ["x", "y"] (NonCPS.Add (NonCPS.Var "x") (NonCPS.Var "y")) [("x", NonCPS.NumVal x),("y", NonCPS.NumVal y)]
+    quickCheck prop_field01
 
-testCPS :: IO () 
-testCPS = do
+testExplicit :: IO () 
+testExplicit = do
     putStrLn "\n-------- Constant evaluation: ----------------------------"
-    putStr $ "5 = " ++ show (CPS.eval (CPS.Const 5) [] id)
+    let prop_const0 x = CPS.eval (CPS.Const x) [] id == CPS.NumVal x
+    quickCheck prop_const0
+    let prop_const1 x z = CPS.eval (CPS.Const x) [("z", CPS.NumVal z)] id == CPS.NumVal x
+    quickCheck prop_const1
     
     putStrLn "\n-------- Variable evaluation: ----------------------------"
-    putStrLn "Let [(x = 3), (y = 7)]"
-    putStr $ "x = " ++ show (CPS.eval (CPS.Var "x") [("x", CPS.NumVal 3), ("y", CPS.NumVal 7)] id)
-    
+    let prop_var x y = CPS.eval (CPS.Var "x") [("x", CPS.NumVal x), ("y", CPS.NumVal y)] id == CPS.NumVal x
+    quickCheck prop_var
+
     putStrLn "\n-------- Addition evaluation: ----------------------------"
-    putStrLn "Let [(x = 3), (y = 5)]"
-    putStr "3 + y = "
-    print $ CPS.eval (CPS.Add (CPS.Const 3) (CPS.Var "y")) [("x", CPS.NumVal 3), ("y", CPS.NumVal 5)] id
-    putStr "x + 5 = "
-    print $ CPS.eval (CPS.Add (CPS.Var "x") (CPS.Const 5)) [("x", CPS.NumVal 3), ("y", CPS.NumVal 5)] id
-    putStr "x + y = "
-    print $ CPS.eval (CPS.Add (CPS.Var "x") (CPS.Var "y")) [("x", CPS.NumVal 3), ("y", CPS.NumVal 5)] id
-    
+    let prop_add0 x y = CPS.eval (CPS.Add (CPS.Const x) (CPS.Const y)) [("z", CPS.NumVal 4)] id == CPS.NumVal (x+y)
+    quickCheck prop_add0
+    let prop_add1 x y = CPS.eval (CPS.Add (CPS.Const x) (CPS.Var "y")) [("z", CPS.NumVal 5), ("y", CPS.NumVal y)] id == CPS.NumVal (x+y)
+    quickCheck prop_add1
+    let prop_add2 x y = CPS.eval (CPS.Add (CPS.Var "x") (CPS.Var "y")) [("x", CPS.NumVal x), ("y", CPS.NumVal y)] id == CPS.NumVal (x+y)
+    quickCheck prop_add2
+
     putStrLn "\n-------- Function evaluation: ----------------------------"
-    let f = CPS.Fun ["x", "y"] (CPS.Add (CPS.Var "x") (CPS.Var "y")) 
-    putStr $ "f(x,y) = " ++ show (CPS.eval f [] id) 
+    let f = CPS.Fun ["x", "y"] (CPS.Add (CPS.Var "x") (CPS.Var "y"))
+    let prop_fun0 x y = CPS.eval f [("x", CPS.NumVal x), ("y", CPS.NumVal y)] id == CPS.FunVal ["x", "y"] (CPS.Add (CPS.Var "x") (CPS.Var "y")) [("x", CPS.NumVal x), ("y", CPS.NumVal y)]
+    quickCheck prop_fun0
 
-    putStrLn "now let [(x = 7)]"
-    putStr $ "f(x,y) = " ++ show (CPS.eval f [("x", CPS.NumVal 7)] id)
-    
     putStrLn "\n-------- Function application evaluation: ----------------"
-    putStr "f(x=1,y=2) = "
-    print $ CPS.eval (CPS.App f [CPS.Const 1, CPS.Const 2]) [] id
-
-    putStrLn "now let [(x = 7)]"
-    putStr "f(x=1,y=2) = "
-    print $ CPS.eval (CPS.App f [CPS.Const 1, CPS.Const 2]) [("x", CPS.NumVal 7)] id
-
+    let prop_funapp0 x y = CPS.eval (CPS.App f [CPS.Var "x", CPS.Var "y"]) [("x", CPS.NumVal x), ("y", CPS.NumVal y)] id == CPS.eval (CPS.Add (CPS.Const x) (CPS.Const y)) [] id 
+    quickCheck prop_funapp0
+    
     putStrLn "\n-------- Object evaluation: ------------------------------"
-    let obj1 = CPS.Obj [("field1", CPS.Const 42), ("field2", CPS.Const 99)]
-    putStr "obj1 = "
-    print $ CPS.eval obj1 [] id 
-
-    putStrLn " now let [(x = 5)]"
-    let obj2 = CPS.Obj [("field1", CPS.Var "x"), ("field2", f)]
-    putStr "obj2 = "
-    print $ CPS.eval obj2 [("x", CPS.NumVal 5)] id
+    let obj0 = CPS.Obj [("field0", CPS.Const 42), ("field1", CPS.Const 99)]
+    let prop_obj0 x = CPS.eval obj0 [("x", CPS.NumVal x)] id == CPS.ObjVal [("field0", CPS.NumVal 42), ("field1", CPS.NumVal 99)]
+    quickCheck prop_obj0
+    let obj1 = CPS.Obj [("field0", CPS.Var "x"), ("field1", f)]
+    let prop_obj1 x y = CPS.eval obj1 [("x", CPS.NumVal x), ("y", CPS.NumVal y)] id == CPS.ObjVal [("field0", CPS.NumVal x), ("field1", CPS.eval f [("x", CPS.NumVal x), ("y", CPS.NumVal y)] id)]
+    quickCheck prop_obj1
 
     putStrLn "\n-------- Object field evaluation: ------------------------"
-    putStrLn "let [(obj1 = ...), (obj2 = ...)]"
-    let env = [("obj1", CPS.eval obj1 [] id), ("obj2", CPS.eval obj2 [("x", CPS.NumVal 5)] id)]
+    let env x y = [("obj0", CPS.eval obj0 [] id), ("obj1", CPS.eval obj1 [("x", CPS.NumVal x), ("y", CPS.NumVal y)] id)]
+    let field00 = CPS.Field (CPS.Var "obj0") "field0"
+    let prop_field01 x y = CPS.eval field00 (env x y) id == CPS.NumVal 42
+    quickCheck prop_field01
+    let field01 = CPS.Field (CPS.Var "obj0") "field1"
+    let prop_field01 x y = CPS.eval field01 (env x y) id == CPS.NumVal 99
+    quickCheck prop_field01
+    let field10 = CPS.Field (CPS.Var "obj1") "field0"
+    let prop_field01 x y = CPS.eval field10 (env x y) id == CPS.NumVal x
+    quickCheck prop_field01
     let field11 = CPS.Field (CPS.Var "obj1") "field1"
-    let field12 = CPS.Field (CPS.Var "obj1") "field2"
-    let field21 = CPS.Field (CPS.Var "obj2") "field1"
-    let field22 = CPS.Field (CPS.Var "obj2") "field2"
-    putStrLn $ "object1 field1: " ++ show (CPS.eval field11 env id)
-    putStrLn $ "object1 field2: " ++ show (CPS.eval field12 env id)
-    putStrLn $ "object2 field1: " ++ show (CPS.eval field21 env id)
-    putStrLn $ "object2 field2: " ++ show (CPS.eval field22 env id)
+    let prop_field01 x y = CPS.eval field11 (env x y) id == CPS.FunVal ["x", "y"] (CPS.Add (CPS.Var "x") (CPS.Var "y")) [("x", CPS.NumVal x),("y", CPS.NumVal y)]
+    quickCheck prop_field01
 
 
-testMonadicCPS :: IO () -- (runContT ... Just) kanns doch nicht sein TODO
-testMonadicCPS = do
+testMonadic :: IO () -- (runContT ... Just) kanns doch nicht sein TODO
+testMonadic = do
     putStrLn "\n-------- Constant evaluation: ----------------------------"
-    putStr $ "5 = " ++ show (runContT (Monadic.eval (Monadic.Const 5) []) Just)
+    let prop_const0 x = runContT (Monadic.eval (Monadic.Const x) []) Just == Just (Monadic.NumVal x)
+    quickCheck prop_const0
+    let prop_const1 x z = runContT (Monadic.eval (Monadic.Const x) [("z", Monadic.NumVal z)]) Just == Just (Monadic.NumVal x)
+    quickCheck prop_const1
     
     putStrLn "\n-------- Variable evaluation: ----------------------------"
-    putStrLn "Let [(x = 3), (y = 7)]"
-    putStr $ "x = " ++ show (runContT (Monadic.eval (Monadic.Var "x") [("x", Monadic.NumVal 3), ("y", Monadic.NumVal 7)]) Just)
-    
+    let prop_var x y = runContT (Monadic.eval (Monadic.Var "x") [("x", Monadic.NumVal x), ("y", Monadic.NumVal y)]) Just == Just (Monadic.NumVal x)
+    quickCheck prop_var
+
     putStrLn "\n-------- Addition evaluation: ----------------------------"
-    putStrLn "Let [(x = 3), (y = 5)]"
-    putStr "3 + y = "
-    print $ runContT (Monadic.eval (Monadic.Add (Monadic.Const 3) (Monadic.Var "y")) [("x", Monadic.NumVal 3), ("y", Monadic.NumVal 5)]) Just
-    putStr "x + 5 = "
-    print $ runContT (Monadic.eval (Monadic.Add (Monadic.Var "x") (Monadic.Const 5)) [("x", Monadic.NumVal 3), ("y", Monadic.NumVal 5)]) Just
-    putStr "x + y = "
-    print $ runContT (Monadic.eval (Monadic.Add (Monadic.Var "x") (Monadic.Var "y")) [("x", Monadic.NumVal 3), ("y", Monadic.NumVal 5)]) Just
-    
+    let prop_add0 x y = runContT (Monadic.eval (Monadic.Add (Monadic.Const x) (Monadic.Const y)) [("z", Monadic.NumVal 4)]) Just == Just (Monadic.NumVal (x+y))
+    quickCheck prop_add0
+    let prop_add1 x y = runContT (Monadic.eval (Monadic.Add (Monadic.Const x) (Monadic.Var "y")) [("z", Monadic.NumVal 5), ("y", Monadic.NumVal y)]) Just == Just (Monadic.NumVal (x+y))
+    quickCheck prop_add1
+    let prop_add2 x y = runContT (Monadic.eval (Monadic.Add (Monadic.Var "x") (Monadic.Var "y")) [("x", Monadic.NumVal x), ("y", Monadic.NumVal y)]) Just == Just (Monadic.NumVal (x+y))
+    quickCheck prop_add2
+
     putStrLn "\n-------- Function evaluation: ----------------------------"
-    let f = Monadic.Fun ["x", "y"] (Monadic.Add (Monadic.Var "x") (Monadic.Var "y")) 
-    putStr $ "f(x,y) = " ++ show (runContT (Monadic.eval f []) Just)
+    let f = Monadic.Fun ["x", "y"] (Monadic.Add (Monadic.Var "x") (Monadic.Var "y"))
+    let prop_fun0 x y = runContT (Monadic.eval f [("x", Monadic.NumVal x), ("y", Monadic.NumVal y)]) Just == Just (Monadic.FunVal ["x", "y"] (Monadic.Add (Monadic.Var "x") (Monadic.Var "y")) [("x", Monadic.NumVal x), ("y", Monadic.NumVal y)])
+    quickCheck prop_fun0
 
-    putStrLn "now let [(x = 7)]"
-    putStr $ "f(x,y) = " ++ show (runContT (Monadic.eval f [("x", Monadic.NumVal 7)]) Just)
-    
     putStrLn "\n-------- Function application evaluation: ----------------"
-    putStr "f(x=1,y=2) = "
-    print $ runContT (Monadic.eval (Monadic.App f [Monadic.Const 1, Monadic.Const 2]) []) Just
-
-    putStrLn "now let [(x = 7)]"
-    putStr "f(x=1,y=2) = "
-    print $ runContT (Monadic.eval (Monadic.App f [Monadic.Const 1, Monadic.Const 2]) [("x", Monadic.NumVal 7)]) Just
-
+    let prop_funapp0 x y = runContT (Monadic.eval (Monadic.App f [Monadic.Var "x", Monadic.Var "y"]) [("x", Monadic.NumVal x), ("y", Monadic.NumVal y)]) Just == runContT (Monadic.eval (Monadic.Add (Monadic.Const x) (Monadic.Const y)) []) Just
+    quickCheck prop_funapp0
+    
     putStrLn "\n-------- Object evaluation: ------------------------------"
-    let obj1 = Monadic.Obj [("field1", Monadic.Const 42), ("field2", Monadic.Const 99)]
-    let obj1Val = fromMaybe (error "Field not found") (runContT (Monadic.eval obj1 []) Just)
-    putStr "obj1 = "
-    print obj1Val
-
-    putStrLn " now let [(x = 5)]"
-    let obj2 = Monadic.Obj [("field1", Monadic.Var "x"), ("field2", f)]
-    let obj2Val = fromMaybe (error "Field not found") (runContT (Monadic.eval obj2 [("x", Monadic.NumVal 5)]) Just)
-    putStr "obj2 = "
-    print obj2Val
+    let obj0 = Monadic.Obj [("field0", Monadic.Const 42), ("field1", Monadic.Const 99)]
+    let prop_obj0 x = runContT (Monadic.eval obj0 [("x", Monadic.NumVal x)]) Just == Just (Monadic.ObjVal [("field0", Monadic.NumVal 42), ("field1", Monadic.NumVal 99)])
+    quickCheck prop_obj0
+    let obj1 = Monadic.Obj [("field0", Monadic.Var "x"), ("field1", f)]
+    let fVal x y = fromMaybe (error "No function value") (runContT (Monadic.eval f [("x", Monadic.NumVal x), ("y", Monadic.NumVal y)]) Just)
+    let prop_obj1 x y = runContT (Monadic.eval obj1 [("x", Monadic.NumVal x), ("y", Monadic.NumVal y)]) Just == Just (Monadic.ObjVal [("field0", Monadic.NumVal x), ("field1", fVal x y)])
+    quickCheck prop_obj1
 
     putStrLn "\n-------- Object field evaluation: ------------------------"
-    putStrLn "let [(obj1 = ...), (obj2 = ...)]"
-    let env = [("obj1", obj1Val), ("obj2",obj2Val)]
+    let objVal0 = fromMaybe (error "No object value") (runContT (Monadic.eval obj0 []) Just)
+    let objVal1 x y = fromMaybe (error "nothing") (runContT (Monadic.eval obj1 [("x", Monadic.NumVal x), ("y", Monadic.NumVal y)]) Just)
+    let env x y = [("obj0", objVal0), ("obj1", objVal1 x y)]
+    let field00 = Monadic.Field (Monadic.Var "obj0") "field0"
+    let prop_field01 x y = runContT (Monadic.eval field00 (env x y)) Just == Just (Monadic.NumVal 42)
+    quickCheck prop_field01
+    let field01 = Monadic.Field (Monadic.Var "obj0") "field1"
+    let prop_field01 x y = runContT (Monadic.eval field01 (env x y)) Just == Just (Monadic.NumVal 99)
+    quickCheck prop_field01
+    let field10 = Monadic.Field (Monadic.Var "obj1") "field0"
+    let prop_field01 x y = runContT (Monadic.eval field10 (env x y)) Just == Just (Monadic.NumVal x)
+    quickCheck prop_field01
     let field11 = Monadic.Field (Monadic.Var "obj1") "field1"
-    let field12 = Monadic.Field (Monadic.Var "obj1") "field2"
-    let field21 = Monadic.Field (Monadic.Var "obj2") "field1"
-    let field22 = Monadic.Field (Monadic.Var "obj2") "field2"
-    putStr "object1 field11: "
-    print $ fromMaybe (error "Field not found") (runContT (Monadic.eval field11 env) Just)
-    putStr "object1 field12: "
-    print $ fromMaybe (error "Field not found") (runContT (Monadic.eval field12 env) Just)
-    putStr "object1 field21: "
-    print $ fromMaybe (error "Field not found") (runContT (Monadic.eval field21 env) Just)
-    putStr "object1 field22: "
-    print $ fromMaybe (error "Field not found") (runContT (Monadic.eval field22 env) Just)
-
-
+    let prop_field01 x y = runContT (Monadic.eval field11 (env x y)) Just == Just (Monadic.FunVal ["x", "y"] (Monadic.Add (Monadic.Var "x") (Monadic.Var "y")) [("x", Monadic.NumVal x),("y", Monadic.NumVal y)])
+    quickCheck prop_field01
