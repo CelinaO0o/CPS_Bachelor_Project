@@ -42,17 +42,10 @@ eval (Obj obj) env = do
 -- why does eval (Obj obj) env = return (ObjVal (evalFields obj env)) not work?
 eval (Field expr field) env = do
     fieldVal <- eval expr env
-    case fieldVal of-- TODO make this ... prettier.
+    case fieldVal of
         ObjVal fields -> return $ fromMaybe (error "Field not found") (lookup field fields)
         _ -> return $ error "Non-object value"
--- eval (Field expr field) env = do
---     fieldVal <- eval expr env
---     case fieldVal of
---         ObjVal fields -> case lookup field fields of
---             Just value -> return value
---             Nothing -> return $ error "no value"
---         _ -> return $ error "no object"
-
+        
 evalArgs :: [Expr] -> Env -> ContT Value Maybe [Value]
 evalArgs args env = mapM (`eval` env) args
 

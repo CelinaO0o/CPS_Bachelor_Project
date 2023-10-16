@@ -3,7 +3,10 @@ import Data.Maybe ( fromMaybe )
 import qualified Data.Map as Map
 
 -- CPS Interpreter, explicit Cont
+
 type Ident = String
+
+type Address = Int
 
 data Expr = Const Int
           | Var Ident
@@ -16,32 +19,38 @@ data Expr = Const Int
 
 data Value = NumVal Int
            | FunVal [Ident] Expr Env
-           | ObjVal [(Ident, Value)]
+           | PtrVal Address
   deriving (Show, Eq)
+
+type ObjValue = [(Ident, Value)]
 
 type Env = [(Ident, Value)]
 
-type Cont b a = (a -> b) -> b
+data State = State { free :: Address, store :: Map.Map Address ObjValue }
 
-eval :: Expr -> Env -> Cont Value Value
-eval (Const c) env k = k $ NumVal c
-eval (Var v) env k = k $ fromMaybe (error "Variable not found in environment")  (lookup v env)
-eval (Add expr1 expr2) env k = eval expr1 env (\(NumVal left) -> eval expr2 env (\(NumVal right) -> k (NumVal (left+right))))
-eval (Fun params expr) env k = k $ FunVal params expr env
-eval (App fun args) env k = eval fun env (\(FunVal params expr env') ->
-                            evalArgs args env (\argVals->
-                            eval expr (zip params argVals ++ env') k))
-eval (Obj obj) env k = evalFields obj env (k . ObjVal) -- \objVal -> k $ ObjVal objVal
-eval (Field expr field) env k =  case eval expr env k of
-  ObjVal fields -> k $ fromMaybe (error "Field not found") (lookup field fields)
-  _ -> k $ error "Non-object value"
+type Result = Maybe Value
 
-evalArgs :: [Expr] -> Env -> Cont Value [Value]
--- evalArgs [] _ k = k []
--- evalArgs (arg : args) env k = eval arg env (\argValue -> evalArgs args env (\restArgs -> k (argValue : restArgs)))
-evalArgs args env k = k $ map (\arg -> eval arg env id) args
+type Cont a = a -> State -> Result
 
-evalFields :: [(Ident, Expr)] -> Env -> Cont Value [(Ident, Value)]
--- evalFields [] _ k = k []
--- evalFields ((ident, expr):xs) env k = eval expr env (\exprVal -> evalFields xs env (\restFields -> k ((ident, exprVal) : restFields)))
-evalFields fields env k = k $ map (\(ident, expr) -> (ident, eval expr env id)) fields
+eval :: Expr -> Env -> State -> Cont Value -> Result
+eval (Const c) env s k = k (NumVal c) s
+eval (Var v) env s k = k (fromMaybe (error "Variable not found in environment")  (lookup v env)) s
+eval (Add expr1 expr2) env s k = eval expr1 env s (\(NumVal left) s -> eval expr2 env s (\(NumVal right) s -> k (NumVal (left+right)) s))
+eval (Fun params expr) env s k = k (FunVal params expr env) s
+eval (App fun args) env s k = eval fun env s (\ (FunVal params expr env') s ->
+                            evalArgs args env s (\argVals s ->
+                            eval expr (zip params argVals ++ env') s k))
+-- eval (Obj obj) env s k = evalFields obj env (k . ObjVal) 
+-- eval (Obj obj) env s k = evalFields obj env s (\fieldVals s ->
+--                             let newaddr = free s + 1 in
+--                             let s' = s {free = newaddr, store = Map.insert newaddr (ObjValue fieldVals) (store s)} in
+--                             k (PtrVal newaddr) s')
+-- eval (Field expr field) env s k =  case eval expr env s k of
+--   Just fields -> k (fromMaybe (error "Field not found") (lookup field fields)) s
+--   _ -> k (error "Non-object value") s
+
+evalArgs :: [Expr] -> Env -> State -> Cont [Value]
+evalArgs args env s k = k (Map.map (\arg -> eval arg env s (\maybeVal s -> ...)) args) s -- id wont work here, needs to take state
+
+-- evalFields :: [(Ident, Expr)] -> Env -> State -> Cont [(Ident, Value)]
+-- evalFields fields env s k = k (map (\(ident, expr) -> (ident, eval expr env s id)) fields) s
