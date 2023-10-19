@@ -38,22 +38,16 @@ eval (Var v) env s k = k (fromMaybe (error "Variable not found in environment") 
 eval (Add expr1 expr2) env s k = eval expr1 env s (\(NumVal left) s -> eval expr2 env s (\(NumVal right) s -> k (NumVal (left+right)) s))
 eval (Fun params expr) env s k = k (FunVal params expr env) s
 eval (App fun args) env s k = eval fun env s (\(FunVal params expr env') s -> -- will this work for k != sid ? 
-                            evalArgs args env s (\argVals s ->
+                            evalMultiple args env s (\argVals s ->
                             eval expr (zip params argVals ++ env') s k))
-eval (Obj obj) env s k = evalFields obj env (k . ObjVal) 
--- eval (Obj obj) env s k = evalFields obj env s (\fieldVals s ->
---                             let newaddr = free s + 1 in
---                             let s' = s {free = newaddr, store = Map.insert newaddr (ObjValue fieldVals) (store s)} in
---                             k (PtrVal newaddr) s')
+eval (Obj obj) env s k = evalMultiple (map snd obj) env s (\fieldVals s ->
+                            let newaddr = (free s) + 1 in
+                            let s' = s {free = newaddr, store = Map.insert newaddr (zip (map fst obj) fieldVals) (store s)} in
+                            k (PtrVal newaddr) s')
 -- eval (Field expr field) env s k =  case eval expr env s k of
 --   Just fields -> k (fromMaybe (error "Field not found") (lookup field fields)) s
 --   _ -> k (error "Non-object value") s
 
-evalArgs :: [Expr] -> Env -> State -> Cont [Value] -> Result
-evalArgs [] env s k = k [] s 
-evalArgs (arg : args) env s k = eval arg env s (\argVal s -> evalArgs args env s (\restVals s -> k (argVal : restVals) s))
-
-evalFields :: [(Ident, Expr)] -> Env -> State -> Cont [(Ident, Value)] -> Result
--- evalFields fields env s k = k (map (\(ident, expr) -> (ident, eval expr env s id)) fields) s
-evalFields [] _ s k = k [] s
-evalFields ((ident, expr):xs) env s k = eval (Field expr ident) env s (\exprVal -> evalFields xs env s (\restFields -> k ((ident, exprVal) : restFields) s))
+evalMultiple :: [Expr] -> Env -> State -> Cont [Value] -> Result
+evalMultiple [] env s k = k [] s 
+evalMultiple (arg : args) env s k = eval arg env s (\argVal s -> evalMultiple args env s (\restVals s -> k (argVal : restVals) s))

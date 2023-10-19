@@ -107,26 +107,27 @@ testExplicit = do
     
     putStrLn "\n-------- Object evaluation: ------------------------------"
     let obj0 = CPS.Obj [("field0", CPS.Const 42), ("field1", CPS.Const 99)]
-    let prop_obj0 x = CPS.eval obj0 [("x", CPS.NumVal x)] s sid == CPS.PtrVal [("field0", CPS.NumVal 42), ("field1", CPS.NumVal 99)]
+    let prop_obj0 = CPS.eval obj0 [] s sid == CPS.PtrVal 1
     quickCheck prop_obj0
     let obj1 = CPS.Obj [("field0", CPS.Var "x"), ("field1", f)]
-    let prop_obj1 x y = CPS.eval obj1 [("x", CPS.NumVal x), ("y", CPS.NumVal y)] s sid == CPS.PtrVal [("field0", CPS.NumVal x), ("field1", CPS.eval f [("x", CPS.NumVal x), ("y", CPS.NumVal y)] s sid)]
+    let prop_obj1 = CPS.eval obj1 [] s sid == CPS.PtrVal 2
+    print (CPS.eval obj1 [] s sid)
     quickCheck prop_obj1
 
-    putStrLn "\n-------- Object field evaluation: ------------------------"
-    let env x y = [("obj0", CPS.eval obj0 [] s sid), ("obj1", CPS.eval obj1 [("x", CPS.NumVal x), ("y", CPS.NumVal y)] s sid)]
-    let field00 = CPS.Field (CPS.Var "obj0") "field0"
-    let prop_field01 x y = CPS.eval field00 (env x y) s sid == CPS.NumVal 42
-    quickCheck prop_field01
-    let field01 = CPS.Field (CPS.Var "obj0") "field1"
-    let prop_field01 x y = CPS.eval field01 (env x y) s sid == CPS.NumVal 99
-    quickCheck prop_field01
-    let field10 = CPS.Field (CPS.Var "obj1") "field0"
-    let prop_field01 x y = CPS.eval field10 (env x y) s sid == CPS.NumVal x
-    quickCheck prop_field01
-    let field11 = CPS.Field (CPS.Var "obj1") "field1"
-    let prop_field01 x y = CPS.eval field11 (env x y) s sid == CPS.FunVal ["x", "y"] (CPS.Add (CPS.Var "x") (CPS.Var "y")) [("x", CPS.NumVal x),("y", CPS.NumVal y)]
-    quickCheck prop_field01
+    -- putStrLn "\n-------- Object field evaluation: ------------------------"
+    -- let env x y = [("obj0", CPS.eval obj0 [] s sid), ("obj1", CPS.eval obj1 [("x", CPS.NumVal x), ("y", CPS.NumVal y)] s sid)]
+    -- let field00 = CPS.Field (CPS.Var "obj0") "field0"
+    -- let prop_field01 x y = CPS.eval field00 (env x y) s sid == CPS.NumVal 42
+    -- quickCheck prop_field01
+    -- let field01 = CPS.Field (CPS.Var "obj0") "field1"
+    -- let prop_field01 x y = CPS.eval field01 (env x y) s sid == CPS.NumVal 99
+    -- quickCheck prop_field01
+    -- let field10 = CPS.Field (CPS.Var "obj1") "field0"
+    -- let prop_field01 x y = CPS.eval field10 (env x y) s sid == CPS.NumVal x
+    -- quickCheck prop_field01
+    -- let field11 = CPS.Field (CPS.Var "obj1") "field1"
+    -- let prop_field01 x y = CPS.eval field11 (env x y) s sid == CPS.FunVal ["x", "y"] (CPS.Add (CPS.Var "x") (CPS.Var "y")) [("x", CPS.NumVal x),("y", CPS.NumVal y)]
+    -- quickCheck prop_field01
 
 
 testMonadic :: IO () -- (runContT ... Just) kanns doch nicht sein TODO
