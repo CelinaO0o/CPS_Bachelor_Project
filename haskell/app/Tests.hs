@@ -77,53 +77,55 @@ testNonCPS = do
 testExplicit :: IO () 
 testExplicit = do
     putStrLn "\n-------- Constant evaluation: ----------------------------"
-    let prop_const0 x = CPS.eval (CPS.Const x) [] id == CPS.NumVal x
+    let s = State { free = 0, store = Map.empty}
+    let sid v s = v
+    let prop_const0 x = CPS.eval (CPS.Const x) [] s sid == CPS.NumVal x
     quickCheck prop_const0
-    let prop_const1 x z = CPS.eval (CPS.Const x) [("z", CPS.NumVal z)] id == CPS.NumVal x
+    let prop_const1 x z = CPS.eval (CPS.Const x) [("z", CPS.NumVal z)] s sid == CPS.NumVal x
     quickCheck prop_const1
     
     putStrLn "\n-------- Variable evaluation: ----------------------------"
-    let prop_var x y = CPS.eval (CPS.Var "x") [("x", CPS.NumVal x), ("y", CPS.NumVal y)] id == CPS.NumVal x
+    let prop_var x y = CPS.eval (CPS.Var "x") [("x", CPS.NumVal x), ("y", CPS.NumVal y)] s sid == CPS.NumVal x
     quickCheck prop_var
 
     putStrLn "\n-------- Addition evaluation: ----------------------------"
-    let prop_add0 x y = CPS.eval (CPS.Add (CPS.Const x) (CPS.Const y)) [("z", CPS.NumVal 4)] id == CPS.NumVal (x+y)
+    let prop_add0 x y = CPS.eval (CPS.Add (CPS.Const x) (CPS.Const y)) [("z", CPS.NumVal 4)] s sid == CPS.NumVal (x+y)
     quickCheck prop_add0
-    let prop_add1 x y = CPS.eval (CPS.Add (CPS.Const x) (CPS.Var "y")) [("z", CPS.NumVal 5), ("y", CPS.NumVal y)] id == CPS.NumVal (x+y)
+    let prop_add1 x y = CPS.eval (CPS.Add (CPS.Const x) (CPS.Var "y")) [("z", CPS.NumVal 5), ("y", CPS.NumVal y)] s sid == CPS.NumVal (x+y)
     quickCheck prop_add1
-    let prop_add2 x y = CPS.eval (CPS.Add (CPS.Var "x") (CPS.Var "y")) [("x", CPS.NumVal x), ("y", CPS.NumVal y)] id == CPS.NumVal (x+y)
+    let prop_add2 x y = CPS.eval (CPS.Add (CPS.Var "x") (CPS.Var "y")) [("x", CPS.NumVal x), ("y", CPS.NumVal y)] s sid == CPS.NumVal (x+y)
     quickCheck prop_add2
 
     putStrLn "\n-------- Function evaluation: ----------------------------"
     let f = CPS.Fun ["x", "y"] (CPS.Add (CPS.Var "x") (CPS.Var "y"))
-    let prop_fun0 x y = CPS.eval f [("x", CPS.NumVal x), ("y", CPS.NumVal y)] id == CPS.FunVal ["x", "y"] (CPS.Add (CPS.Var "x") (CPS.Var "y")) [("x", CPS.NumVal x), ("y", CPS.NumVal y)]
+    let prop_fun0 x y = CPS.eval f [("x", CPS.NumVal x), ("y", CPS.NumVal y)] s sid == CPS.FunVal ["x", "y"] (CPS.Add (CPS.Var "x") (CPS.Var "y")) [("x", CPS.NumVal x), ("y", CPS.NumVal y)]
     quickCheck prop_fun0
 
     putStrLn "\n-------- Function application evaluation: ----------------"
-    let prop_funapp0 x y = CPS.eval (CPS.App f [CPS.Var "x", CPS.Var "y"]) [("x", CPS.NumVal x), ("y", CPS.NumVal y)] id == CPS.eval (CPS.Add (CPS.Const x) (CPS.Const y)) [] id 
+    let prop_funapp0 x y = CPS.eval (CPS.App f [CPS.Var "x", CPS.Var "y"]) [("x", CPS.NumVal x), ("y", CPS.NumVal y)] s sid == CPS.eval (CPS.Add (CPS.Const x) (CPS.Const y)) [] s sid 
     quickCheck prop_funapp0
     
     putStrLn "\n-------- Object evaluation: ------------------------------"
     let obj0 = CPS.Obj [("field0", CPS.Const 42), ("field1", CPS.Const 99)]
-    let prop_obj0 x = CPS.eval obj0 [("x", CPS.NumVal x)] id == CPS.ObjVal [("field0", CPS.NumVal 42), ("field1", CPS.NumVal 99)]
+    let prop_obj0 x = CPS.eval obj0 [("x", CPS.NumVal x)] s sid == CPS.PtrVal [("field0", CPS.NumVal 42), ("field1", CPS.NumVal 99)]
     quickCheck prop_obj0
     let obj1 = CPS.Obj [("field0", CPS.Var "x"), ("field1", f)]
-    let prop_obj1 x y = CPS.eval obj1 [("x", CPS.NumVal x), ("y", CPS.NumVal y)] id == CPS.ObjVal [("field0", CPS.NumVal x), ("field1", CPS.eval f [("x", CPS.NumVal x), ("y", CPS.NumVal y)] id)]
+    let prop_obj1 x y = CPS.eval obj1 [("x", CPS.NumVal x), ("y", CPS.NumVal y)] s sid == CPS.PtrVal [("field0", CPS.NumVal x), ("field1", CPS.eval f [("x", CPS.NumVal x), ("y", CPS.NumVal y)] s sid)]
     quickCheck prop_obj1
 
     putStrLn "\n-------- Object field evaluation: ------------------------"
-    let env x y = [("obj0", CPS.eval obj0 [] id), ("obj1", CPS.eval obj1 [("x", CPS.NumVal x), ("y", CPS.NumVal y)] id)]
+    let env x y = [("obj0", CPS.eval obj0 [] s sid), ("obj1", CPS.eval obj1 [("x", CPS.NumVal x), ("y", CPS.NumVal y)] s sid)]
     let field00 = CPS.Field (CPS.Var "obj0") "field0"
-    let prop_field01 x y = CPS.eval field00 (env x y) id == CPS.NumVal 42
+    let prop_field01 x y = CPS.eval field00 (env x y) s sid == CPS.NumVal 42
     quickCheck prop_field01
     let field01 = CPS.Field (CPS.Var "obj0") "field1"
-    let prop_field01 x y = CPS.eval field01 (env x y) id == CPS.NumVal 99
+    let prop_field01 x y = CPS.eval field01 (env x y) s sid == CPS.NumVal 99
     quickCheck prop_field01
     let field10 = CPS.Field (CPS.Var "obj1") "field0"
-    let prop_field01 x y = CPS.eval field10 (env x y) id == CPS.NumVal x
+    let prop_field01 x y = CPS.eval field10 (env x y) s sid == CPS.NumVal x
     quickCheck prop_field01
     let field11 = CPS.Field (CPS.Var "obj1") "field1"
-    let prop_field01 x y = CPS.eval field11 (env x y) id == CPS.FunVal ["x", "y"] (CPS.Add (CPS.Var "x") (CPS.Var "y")) [("x", CPS.NumVal x),("y", CPS.NumVal y)]
+    let prop_field01 x y = CPS.eval field11 (env x y) s sid == CPS.FunVal ["x", "y"] (CPS.Add (CPS.Var "x") (CPS.Var "y")) [("x", CPS.NumVal x),("y", CPS.NumVal y)]
     quickCheck prop_field01
 
 
