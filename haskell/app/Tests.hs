@@ -116,26 +116,26 @@ testExplicit = do
     let prop_obj0 x = CPS.eval (obj0 x) [("x", CPS.NumVal x)] s sid == (CPS.PtrVal 0, s' x)
     quickCheck prop_obj0
 
-    let obj1 = CPS.Obj [("field1", f)]
+    let obj1 = CPS.Obj [("field", f)]
     let fVal x = CPS.eval f [] (s' x) sid
-    let store'' x = Map.insert 1 (fVal x) (store' x)
-    let s'' x = State {free = 2, store = store''}
+    let store'' x = Map.insert 1 [("field", fst (fVal x))] (store' x)
+    let s'' x = State {free = 2, store = store'' x}
     let prop_obj1 x = CPS.eval obj1 [] (s' x) sid == (CPS.PtrVal 1, s'' x)
     quickCheck prop_obj1
 
-    -- putStrLn "\n-------- Object field evaluation: ------------------------"
-    -- let env x y = [("obj0", CPS.eval obj0 [] s sid), ("obj1", CPS.eval obj1 [("x", CPS.NumVal x), ("y", CPS.NumVal y)] s sid)]
-    -- let field00 = CPS.Field (CPS.Var "obj0") "field0"
-    -- let prop_field01 x y = CPS.eval field00 (env x y) s sid == CPS.NumVal 42
-    -- quickCheck prop_field01
-    -- let field01 = CPS.Field (CPS.Var "obj0") "field1"
+    putStrLn "\n-------- Object field evaluation: ------------------------"
+    let env = [("obj0", fst $ CPS.eval (obj0 5) [("x", CPS.NumVal 5)] (s'' 5) sid), ("obj1", fst $ CPS.eval obj1 [] (s'' 5) sid)]
+    let field0 = CPS.Field (CPS.Var "obj0") "const"
+    let prop_field0 = CPS.eval field0 env s sid == (CPS.NumVal 5, s'' 5)
+    quickCheck prop_field0
+    -- let field1 = CPS.Field (CPS.Var "obj0") "var"
+    -- let field2 = CPS.Field (CPS.Var "obj1") "field"
+
+    -- let field1 = CPS.Field (CPS.Var "obj0") "field1"
     -- let prop_field01 x y = CPS.eval field01 (env x y) s sid == CPS.NumVal 99
     -- quickCheck prop_field01
-    -- let field10 = CPS.Field (CPS.Var "obj1") "field0"
+    -- let field2 = CPS.Field (CPS.Var "obj1") "field0"
     -- let prop_field01 x y = CPS.eval field10 (env x y) s sid == CPS.NumVal x
-    -- quickCheck prop_field01
-    -- let field11 = CPS.Field (CPS.Var "obj1") "field1"
-    -- let prop_field01 x y = CPS.eval field11 (env x y) s sid == CPS.FunVal ["x", "y"] (CPS.Add (CPS.Var "x") (CPS.Var "y")) [("x", CPS.NumVal x),("y", CPS.NumVal y)]
     -- quickCheck prop_field01
 
 

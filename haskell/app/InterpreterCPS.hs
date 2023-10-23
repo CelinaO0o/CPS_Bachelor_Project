@@ -24,7 +24,7 @@ data Value = NumVal Int
 
 type ObjValue = [(Ident, Value)]
 
-type Env = [(Ident, Value)]
+type Env = [(Ident, Value)] -- [(Ident, Result)] ?
 
 data State = State { free :: Address, store :: Map.Map Address ObjValue }
   deriving (Show, Eq)
