@@ -45,9 +45,9 @@ eval (Obj obj) env s k = evalMultiple (map snd obj) env s (\fieldVals s ->
                             let newaddr = free s + 1 in
                             let s' = State {free = newaddr, store = Map.insert (free s) (zip (map fst obj) fieldVals) (store s)} in
                             k (PtrVal (free s)) s')
-eval (Field expr field) env (State free store) k =  case eval expr env (State free store) k of
-  (PtrVal ptr, s') -> k (fromMaybe (error "Field not found") (lookup field (store Map.! ptr))) s'
-  _ -> k (error "Non-object value") (State free store)
+eval (Field obj field) env s k =  case eval obj env s k of
+  (PtrVal ptr, State free store) -> k (fromMaybe (error "Field not found") (lookup field (store Map.! ptr))) (State free store)
+  _ -> k (error "Non-object value") s
 
 evalMultiple :: [Expr] -> Env -> State -> Cont [Value] -> Result
 evalMultiple [] env s k = k [] s 
