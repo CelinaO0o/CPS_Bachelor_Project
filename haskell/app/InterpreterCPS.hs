@@ -15,6 +15,7 @@ data Expr = Const Int
           | App Expr [Expr]
           | Obj [(Ident, Expr)]
           | Field Expr Ident
+          | SetField Expr Ident Expr
   deriving (Show, Eq)
 
 data Value = NumVal Int
@@ -48,10 +49,10 @@ eval (Obj obj) env s k = evalMultiple (map snd obj) env s (\fieldVals s ->
 eval (Field obj field) env s k =  case eval obj env s k of
   (PtrVal ptr, State free store) -> k (fromMaybe (error "Field not found") (lookup field (store Map.! ptr))) (State free store)
   _ -> k (error "Non-object value") s
+-- eval (SetField obj field expr) env s k = eval (Field obj field) env s (\fieldVal s -> )
 
+  
 evalMultiple :: [Expr] -> Env -> State -> Cont [Value] -> Result
 evalMultiple [] env s k = k [] s 
 evalMultiple (arg : args) env s k = eval arg env s (\argVal s -> evalMultiple args env s (\restVals s -> k (argVal : restVals) s))
 
--- SetField :: Expr -> Field -> Expr
--- SetField Expr Field Expr
