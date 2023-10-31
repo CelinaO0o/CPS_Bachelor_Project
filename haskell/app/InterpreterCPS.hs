@@ -49,7 +49,11 @@ eval (Obj obj) env s k = evalMultiple (map snd obj) env s (\fieldVals s ->
 eval (Field obj field) env s k =  case eval obj env s k of
   (PtrVal ptr, State free store) -> k (fromMaybe (error "Field not found") (lookup field (store Map.! ptr))) (State free store)
   _ -> k (error "Non-object value") s
--- eval (SetField obj field expr) env s k = eval (Field obj field) env s (\fieldVal s -> )
+eval (SetField (Obj obj) field expr) env s k = case eval (Field (Obj obj) field) env s k of --checks if the obj/ field exists
+  (fieldVal, State free store) -> let fields' = delete field (map fst obj) in
+                                  let values' = map snd obj in
+                                  let obj' = 
+                                  k (eval (Field obj expr) env s ()) s
 
   
 evalMultiple :: [Expr] -> Env -> State -> Cont [Value] -> Result
