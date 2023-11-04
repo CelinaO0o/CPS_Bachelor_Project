@@ -13,7 +13,7 @@ data Expr = Const Int
           | Add Expr Expr
           | Fun [Ident] Expr
           | App Expr [Expr]
-          | Obj [(Ident, Expr)]
+          | Obj [(Ident, Expr)] --change to Map?
           | Field Expr Ident
           | SetField Expr Ident Expr
   deriving (Show, Eq)
@@ -22,7 +22,7 @@ data Value = NumVal Int
            | FunVal [Ident] Expr Env
            | PtrVal Address
   deriving (Show, Eq)
-
+  
 type ObjValue = [(Ident, Value)]
 
 type Env = [(Ident, Value)] -- [(Ident, Result)] ?
@@ -49,14 +49,16 @@ eval (Obj obj) env s k = evalMultiple (map snd obj) env s (\fieldVals s ->
 eval (Field obj field) env s k =  case eval obj env s k of
   (PtrVal ptr, State free store) -> k (fromMaybe (error "Field not found") (lookup field (store Map.! ptr))) (State free store)
   _ -> k (error "Non-object value") s
-eval (SetField (Obj obj) field expr) env s k = case eval (Field (Obj obj) field) env s k of --checks if the obj/ field exists
-  (fieldVal, State free store) -> let fields' = delete field (map fst obj) in
-                                  let values' = map snd obj in
-                                  let obj' = 
-                                  k (eval (Field obj expr) env s ()) s
+eval (SetField (Obj obj) field expr) env s k = let obj' = modifyList field expr obj in 
+                                  eval (Obj obj') env s k --what should this return? 
 
   
 evalMultiple :: [Expr] -> Env -> State -> Cont [Value] -> Result
 evalMultiple [] env s k = k [] s 
 evalMultiple (arg : args) env s k = eval arg env s (\argVal s -> evalMultiple args env s (\restVals s -> k (argVal : restVals) s))
 
+modifyList :: Ident -> Expr -> [(Ident, Expr)] -> [(Ident, Expr)] -- not needed if I just use Map for Objects
+modifyList _ _ [] = []
+modifyList ident newExpr (x:xs)
+    | ident == fst x = (ident, newExpr) : xs
+    | otherwise = x : modifyList ident newExpr xs
