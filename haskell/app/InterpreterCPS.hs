@@ -46,19 +46,19 @@ eval (Obj obj) env s k = evalMultiple (Map.elems obj) env s (\fieldVals s ->
                             let newaddr = free s + 1 in
                             let s' = State {free = newaddr, store = Map.insert (free s) (Map.fromList(zip (Map.keys obj) fieldVals))(store s)} in
                             k (PtrVal (free s)) s')
--- eval (Field obj field) env s k =  case eval obj env s k of
---   (PtrVal ptr, State free store) -> k (fromMaybe (error "Field not found") (lookup field (store Map.! ptr))) (State free store)
---   _ -> k (error "Non-object value") s
--- eval (SetField (Obj obj) field expr) env s k = let obj' = modifyList field expr obj in
---                                   eval (Obj obj') env s k --what should this return? 
+eval (Field obj field) env s k =  case eval obj env s k of
+  (PtrVal ptr, State free store) -> k ((store Map.! ptr) Map.! field) (State free store)
+  _ -> k (error "Non-object value") s
+eval (SetField (Obj obj) field expr) env s k = let obj' = Map.insert field expr obj in
+                                  eval (Field (Obj obj) field) env s k --what should this return? 
 
 
 evalMultiple :: [Expr] -> Env -> State -> Cont [Value] -> Result
 evalMultiple [] env s k = k [] s
 evalMultiple (arg : args) env s k = eval arg env s (\argVal s -> evalMultiple args env s (\restVals s -> k (argVal : restVals) s))
 
-modifyList :: Ident -> Expr -> [(Ident, Expr)] -> [(Ident, Expr)] -- not needed if I just use Map for Objects
-modifyList _ _ [] = []
-modifyList ident newExpr (x:xs)
-    | ident == fst x = (ident, newExpr) : xs
-    | otherwise = x : modifyList ident newExpr xs
+-- modifyList :: Ident -> Expr -> [(Ident, Expr)] -> [(Ident, Expr)] -- not needed if I just use Map for Objects
+-- modifyList _ _ [] = []
+-- modifyList ident newExpr (x:xs)
+--     | ident == fst x = (ident, newExpr) : xs
+--     | otherwise = x : modifyList ident newExpr xs

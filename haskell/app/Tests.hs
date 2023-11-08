@@ -9,7 +9,7 @@ import Test.QuickCheck
 import Control.Monad.Trans.Cont
 
 testAll :: IO ()
-testAll = do 
+testAll = do
     putStrLn "\n-------- Non CPS Interpreter: ------------------------------------------"
     testNonCPS
     putStrLn "\n-------- Explicit CPS Interpreter: -------------------------------------"
@@ -23,13 +23,13 @@ testNonCPS = do
 
     -- let eval = NonCPS.eval 
     --     Const = NonCPS.Const -- won't work TODO
-    
+
     putStrLn "\n-------- Constant evaluation: ----------------------------"
     let prop_const0 x = NonCPS.eval (NonCPS.Const x) [] == NonCPS.NumVal x
     quickCheck prop_const0
     let prop_const1 x z = NonCPS.eval (NonCPS.Const x) [("z", NonCPS.NumVal z)] == NonCPS.NumVal x
     quickCheck prop_const1
-    
+
     putStrLn "\n-------- Variable evaluation: ----------------------------"
     let prop_var x y = NonCPS.eval (NonCPS.Var "x") [("x", NonCPS.NumVal x), ("y", NonCPS.NumVal y)] == NonCPS.NumVal x
     quickCheck prop_var
@@ -50,7 +50,7 @@ testNonCPS = do
     putStrLn "\n-------- Function application evaluation: ----------------"
     let prop_funapp0 x y = NonCPS.eval (NonCPS.App f [NonCPS.Var "x", NonCPS.Var "y"]) [("x", NonCPS.NumVal x), ("y", NonCPS.NumVal y)] == NonCPS.eval (NonCPS.Add (NonCPS.Const x) (NonCPS.Const y)) []
     quickCheck prop_funapp0
-    
+
     putStrLn "\n-------- Object evaluation: ------------------------------"
     let obj0 = NonCPS.Obj [("field0", NonCPS.Const 42), ("field1", NonCPS.Const 99)]
     let prop_obj0 x = NonCPS.eval obj0 [("x", NonCPS.NumVal x)] == NonCPS.ObjVal [("field0", NonCPS.NumVal 42), ("field1", NonCPS.NumVal 99)]
@@ -74,7 +74,7 @@ testNonCPS = do
     let prop_field01 x y = NonCPS.eval field11 (env x y) == NonCPS.FunVal ["x", "y"] (NonCPS.Add (NonCPS.Var "x") (NonCPS.Var "y")) [("x", NonCPS.NumVal x),("y", NonCPS.NumVal y)]
     quickCheck prop_field01
 
-testExplicit :: IO () 
+testExplicit :: IO ()
 testExplicit = do
     let s = State { free = 0, store = Map.empty}
     let sid v s = (v, s)
@@ -83,7 +83,7 @@ testExplicit = do
     quickCheck prop_const0
     let prop_const1 x z = CPS.eval (CPS.Const x) (Map.fromList [("z", CPS.NumVal z)]) s sid == (CPS.NumVal x,s)
     quickCheck prop_const1
-    
+
     putStrLn "\n-------- Variable evaluation: ----------------------------"
     let prop_var x y = CPS.eval (CPS.Var "x") (Map.fromList [("x", CPS.NumVal x), ("y", CPS.NumVal y)]) s sid == (CPS.NumVal x,s)
     quickCheck prop_var
@@ -103,37 +103,46 @@ testExplicit = do
     quickCheck prop_fun0
 
     putStrLn "\n-------- Function application evaluation: ----------------"
-    let res x y = CPS.eval (CPS.Add (CPS.Const x) (CPS.Const y)) Map.empty s sid 
+    let res x y = CPS.eval (CPS.Add (CPS.Const x) (CPS.Const y)) Map.empty s sid
     let prop_funapp0 x y = CPS.eval (CPS.App f [CPS.Var "x", CPS.Var "y"]) (Map.fromList [("x", CPS.NumVal x), ("y", CPS.NumVal y)]) s sid == res x y
     quickCheck prop_funapp0
-    
+
     putStrLn "\n-------- Object evaluation: ------------------------------"
     let obj0 x = CPS.Obj (Map.fromList [("const", CPS.Const x), ("var", CPS.Var "x")])
-    let constVal x = CPS.eval (CPS.Const x) (Map.fromList[("x", CPS.NumVal x)]) s sid
+    let constVal x = CPS.eval (CPS.Const x) (Map.fromList [("x", CPS.NumVal x)]) s sid
     let varVal x = CPS.eval (CPS.Var "x") (Map.fromList [("x", CPS.NumVal x)]) s sid
-    let store' x = Map.fromList [(0,[("const", fst (constVal x)),("var", fst (varVal x))])]
+    let obj0Val x = Map.fromList [("const", fst (constVal x)),("var", fst (varVal x))]
+    let store' x = Map.fromList [(0, obj0Val x)]
     let s' x = State {free = 1, store = store' x}
     let prop_obj0 x = CPS.eval (obj0 x) (Map.fromList [("x", CPS.NumVal x)]) s sid == (CPS.PtrVal 0, s' x)
     quickCheck prop_obj0
 
     let obj1 = CPS.Obj (Map.fromList [("field", f)])
     let fVal x = CPS.eval f Map.empty (s' x) sid
-    let store'' x = Map.insert 1 [("field", fst (fVal x))] (store' x)
+    let obj1Val x = Map.fromList [("field", fst (fVal x))]
+    let store'' x = Map.insert 1 (obj1Val x) (store' x)
     let s'' x = State {free = 2, store = store'' x}
     let prop_obj1 x = CPS.eval obj1 Map.empty (s' x) sid == (CPS.PtrVal 1, s'' x)
     quickCheck prop_obj1
 
-    -- putStrLn "\n-------- Object field evaluation: ------------------------"
-    -- let env x = [("obj0", fst $ CPS.eval (obj0 x) [("x", CPS.NumVal x)] s sid), ("obj1", fst $ CPS.eval obj1 [] (s'' x) sid)]
-    -- let field0 = CPS.Field (CPS.Var "obj0") "const"
-    -- let prop_field0 x = CPS.eval field0 (env x) (s'' x) sid == (CPS.NumVal x, s'' x)
-    -- quickCheck prop_field0
-    -- let field1 = CPS.Field (CPS.Var "obj0") "var"
-    -- let prop_field1 x = CPS.eval field1 (env x) (s'' x) sid == (CPS.NumVal x, s'' x)
-    -- quickCheck prop_field0
-    -- let field2 = CPS.Field (CPS.Var "obj1") "field"
-    -- let prop_field2 x = CPS.eval field2 (env x) (s'' x) sid == CPS.eval f (env x) (s'' x) sid
-    -- quickCheck prop_field0
+    putStrLn "\n-------- Object field evaluation: ------------------------"
+    let env x = Map.fromList [("obj0", fst $ CPS.eval (obj0 x) (Map.fromList [("x", CPS.NumVal x)]) s sid), ("obj1", fst $ CPS.eval obj1 Map.empty (s'' x) sid)]
+    let field0 = CPS.Field (CPS.Var "obj0") "const"
+    let prop_field0 x = CPS.eval field0 (env x) (s'' x) sid == (CPS.NumVal x, s'' x)
+    quickCheck prop_field0
+    let field1 = CPS.Field (CPS.Var "obj0") "var"
+    let prop_field1 x = CPS.eval field1 (env x) (s'' x) sid == (CPS.NumVal x, s'' x)
+    quickCheck prop_field0
+    let field2 = CPS.Field (CPS.Var "obj1") "field"
+    let prop_field2 x = CPS.eval field2 (env x) (s'' x) sid == CPS.eval f (env x) (s'' x) sid
+    quickCheck prop_field0
+
+    putStrLn "\n-------- Set Object field: -------------------------------"
+    let setField x = SetField (obj0 x) "const" (CPS.Const 5)
+    print (CPS.eval (setField 2) (env 2) (s'' 2) sid)
+    let prop_setfield0 x = CPS.eval (setField x) (env x) (s'' x) sid == (CPS.NumVal x, s'' x)
+    quickCheck prop_setfield0
+
 
 
 testMonadic :: IO () -- (runContT ... Just) kanns doch nicht sein TODO
@@ -143,7 +152,7 @@ testMonadic = do
     quickCheck prop_const0
     let prop_const1 x z = runContT (Monadic.eval (Monadic.Const x) [("z", Monadic.NumVal z)]) Just == Just (Monadic.NumVal x)
     quickCheck prop_const1
-    
+
     putStrLn "\n-------- Variable evaluation: ----------------------------"
     let prop_var x y = runContT (Monadic.eval (Monadic.Var "x") [("x", Monadic.NumVal x), ("y", Monadic.NumVal y)]) Just == Just (Monadic.NumVal x)
     quickCheck prop_var
@@ -164,7 +173,7 @@ testMonadic = do
     putStrLn "\n-------- Function application evaluation: ----------------"
     let prop_funapp0 x y = runContT (Monadic.eval (Monadic.App f [Monadic.Var "x", Monadic.Var "y"]) [("x", Monadic.NumVal x), ("y", Monadic.NumVal y)]) Just == runContT (Monadic.eval (Monadic.Add (Monadic.Const x) (Monadic.Const y)) []) Just
     quickCheck prop_funapp0
-    
+
     putStrLn "\n-------- Object evaluation: ------------------------------"
     let obj0 = Monadic.Obj [("field0", Monadic.Const 42), ("field1", Monadic.Const 99)]
     let prop_obj0 x = runContT (Monadic.eval obj0 [("x", Monadic.NumVal x)]) Just == Just (Monadic.ObjVal [("field0", Monadic.NumVal 42), ("field1", Monadic.NumVal 99)])
