@@ -140,14 +140,10 @@ testExplicit = do
 
     putStrLn "\n-------- Set Object field: -------------------------------"
     let obj = CPS.Obj $ Map.fromList [("field", CPS.Const 3)]
-    let s' = snd $ CPS.eval obj Map.empty s sid
-    let setField = CPS.SetField obj "field" (CPS.Const 4)
-    let s'' = snd $ CPS.eval setField Map.empty s' sid
-    -- State {free = 2, store = fromList [(0,ObjVal (fromList [("field",NumVal 3)])),(1,ObjVal (fromList [("field",NumVal 4)]))]}
-    -- allocs a new adress, because setField method keeps creating new adress instead of finding actual obj in State
-    -- print $ s''
-    let state = State {free = 1, store = Map.fromList [(0, CPS.ObjVal (Map.fromList [("field", CPS.NumVal 5)]))]}
-    let prop_setField = CPS.eval setField Map.empty s' sid == (CPS.NumVal 4, state)
+    let (PtrVal adress, s') = CPS.eval obj Map.empty s sid
+    let setField = CPS.SetField adress "field" (CPS.Const 4)
+    let s'' = State {free = 1, store = Map.fromList [(0, CPS.ObjVal (Map.fromList [("field", CPS.NumVal 4)]))]}
+    let prop_setField = CPS.eval setField Map.empty s' sid == (CPS.PtrVal 0, s'')
     quickCheck prop_setField
 
 

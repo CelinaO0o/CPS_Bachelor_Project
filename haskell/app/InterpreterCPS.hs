@@ -15,7 +15,7 @@ data Expr = Const Int
           | App Expr [Expr]
           | Obj (Map.Map Ident Expr)
           | Field Expr Ident
-          | SetField Expr Ident Expr
+          | SetField Address Ident Expr
   deriving (Show, Eq)
 
 data Value = NumVal Int
@@ -50,12 +50,12 @@ eval (Field obj field) env s k = case eval obj env s k of
   (PtrVal ptr, State free store) -> let ObjVal valAtPtr = store Map.! ptr in
     k (valAtPtr Map.! field) (State free store)
   _ -> k (error "Non-object value") s
-eval (SetField (Obj obj) field expr) env (State fr st) k = -- if same object has multiple addresses, what to change?
-  let PtrVal ptr = getAdress (Obj obj) (State fr st) in 
-  let obj' = Obj $ Map.insert field expr obj in
-  let objVal = fst $ eval obj' env (State fr st) k in
-  let s' = State {free = free, store = Map.insert ptr objVal store} in --change obj in store!
-    eval (Field obj' field) env s' k 
+eval (SetField address field expr) env (State f s) k = 
+  let ObjVal objVal = s Map.! address in
+  let fieldVal = fst $ eval expr env (State f s) k in
+  let objVal' = ObjVal $ Map.insert field fieldVal objVal in
+  let s' = State {free = f, store = Map.insert address objVal' s} in 
+    k (PtrVal address) s' -- what should be the output?
 
 
 evalMultiple :: [Expr] -> Env -> State -> Cont [Value] -> Result
