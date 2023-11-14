@@ -108,41 +108,47 @@ testExplicit = do
     quickCheck prop_funapp0
 
     putStrLn "\n-------- Object evaluation: ------------------------------"
-    let obj0 x = CPS.Obj (Map.fromList [("const", CPS.Const x), ("var", CPS.Var "x")])
-    let constVal x = CPS.eval (CPS.Const x) (Map.fromList [("x", CPS.NumVal x)]) s sid
-    let varVal x = CPS.eval (CPS.Var "x") (Map.fromList [("x", CPS.NumVal x)]) s sid
-    let obj0Val x = Map.fromList [("const", fst (constVal x)),("var", fst (varVal x))]
+    let obj0 x = CPS.Obj (Map.fromList [("field0", CPS.Const x), ("field1", CPS.Var "x")])
+    let env x = Map.fromList [("x", CPS.NumVal x)]
+    let constVal x = CPS.eval (CPS.Const x) (env x) s sid
+    let varVal x = CPS.eval (CPS.Var "x") (env x) s sid
+    let obj0Val x = CPS.ObjVal $ Map.fromList [("field0", fst (constVal x)),("field1", fst (varVal x))]
     let store' x = Map.fromList [(0, obj0Val x)]
     let s' x = State {free = 1, store = store' x}
-    let prop_obj0 x = CPS.eval (obj0 x) (Map.fromList [("x", CPS.NumVal x)]) s sid == (CPS.PtrVal 0, s' x)
+    let prop_obj0 x = CPS.eval (obj0 x) (env x) s sid == (CPS.PtrVal 0, s' x)
     quickCheck prop_obj0
 
-    let obj1 = CPS.Obj (Map.fromList [("field", f)])
+    let obj1 = CPS.Obj (Map.fromList [("field2", f)])
     let fVal x = CPS.eval f Map.empty (s' x) sid
-    let obj1Val x = Map.fromList [("field", fst (fVal x))]
+    let obj1Val x = CPS.ObjVal $ Map.fromList [("field2", fst (fVal x))]
     let store'' x = Map.insert 1 (obj1Val x) (store' x)
     let s'' x = State {free = 2, store = store'' x}
     let prop_obj1 x = CPS.eval obj1 Map.empty (s' x) sid == (CPS.PtrVal 1, s'' x)
     quickCheck prop_obj1
 
     putStrLn "\n-------- Object field evaluation: ------------------------"
-    let env x = Map.fromList [("obj0", fst $ CPS.eval (obj0 x) (Map.fromList [("x", CPS.NumVal x)]) s sid), ("obj1", fst $ CPS.eval obj1 Map.empty (s'' x) sid)]
-    let field0 = CPS.Field (CPS.Var "obj0") "const"
+    let env x = Map.fromList [("obj0", fst $ CPS.eval (obj0 x) (env x) s sid), ("obj1", fst $ CPS.eval obj1 (env x) (s'' x) sid)]
+    let field0 = CPS.Field (CPS.Var "obj0") "field0"
     let prop_field0 x = CPS.eval field0 (env x) (s'' x) sid == (CPS.NumVal x, s'' x)
     quickCheck prop_field0
-    let field1 = CPS.Field (CPS.Var "obj0") "var"
+    let field1 = CPS.Field (CPS.Var "obj0") "field1"
     let prop_field1 x = CPS.eval field1 (env x) (s'' x) sid == (CPS.NumVal x, s'' x)
     quickCheck prop_field0
-    let field2 = CPS.Field (CPS.Var "obj1") "field"
+    let field2 = CPS.Field (CPS.Var "obj1") "field2"
     let prop_field2 x = CPS.eval field2 (env x) (s'' x) sid == CPS.eval f (env x) (s'' x) sid
     quickCheck prop_field0
 
     putStrLn "\n-------- Set Object field: -------------------------------"
-    let setField x = SetField (obj0 x) "const" (CPS.Const 5)
-    print (CPS.eval (setField 2) (env 2) (s'' 2) sid)
-    let prop_setfield0 x = CPS.eval (setField x) (env x) (s'' x) sid == (CPS.NumVal x, s'' x)
-    quickCheck prop_setfield0
-
+    let obj = CPS.Obj $ Map.fromList [("field", CPS.Const 3)]
+    let s' = snd $ CPS.eval obj Map.empty s sid
+    let setField = CPS.SetField obj "field" (CPS.Const 4)
+    let s'' = snd $ CPS.eval setField Map.empty s' sid
+    -- State {free = 2, store = fromList [(0,ObjVal (fromList [("field",NumVal 3)])),(1,ObjVal (fromList [("field",NumVal 4)]))]}
+    -- allocs a new adress, because setField method keeps creating new adress instead of finding actual obj in State
+    -- print $ s''
+    let state = State {free = 1, store = Map.fromList [(0, CPS.ObjVal (Map.fromList [("field", CPS.NumVal 5)]))]}
+    let prop_setField = CPS.eval setField Map.empty s' sid == (CPS.NumVal 4, state)
+    quickCheck prop_setField
 
 
 testMonadic :: IO () -- (runContT ... Just) kanns doch nicht sein TODO
