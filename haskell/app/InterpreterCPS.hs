@@ -2,33 +2,35 @@ module InterpreterCPS where
 import Data.Maybe ( fromMaybe )
 import qualified Data.Map as Map
 
--- CPS Interpreter, explicit Cont
+-- CPS Interpreter, explicit
 
 type Ident = String
 
 type Address = Int
 
-data Expr = Const Int
-          | Var Ident
-          | Add Expr Expr
-          | Fun [Ident] Expr
-          | App Expr [Expr]
-          | Obj (Map.Map Ident Expr)
-          | Field Expr Ident
-          | SetField Address Ident Expr
+data Expr = Const Int                -- a constant integer
+          | Var Ident                -- a string variable
+          | Add Expr Expr            -- Addition of two expressions
+          | Fun [Ident] Expr         -- Function [parameters] functionbody
+          | App Expr [Expr]          -- Application function [argumentvalues] 
+          | Obj (Map.Map Ident Expr) -- Object Map{fieldname -> value}
+          | Field Expr Ident         -- Field object fieldname
+          | SetField Expr Ident Expr -- SetField object fieldname new_value TODO nicht in Expr?
   deriving (Show, Eq)
 
-data Value = NumVal Int
-           | FunVal [Ident] Expr Env
-           | PtrVal Address
-           | ObjVal (Map.Map Ident Value)
+data Value = NumVal Int              -- Numeric Value
+           | FunVal [Ident] Expr Env -- Function_value [parameters] functionbody environment
+           | PtrVal Address          -- Pointer_value
   deriving (Show, Eq)
 
-type Env = (Map.Map Ident Value) -- (Map.Map Ident Result) ?
-
-data State = State { free :: Address, store :: Map.Map Address Value }
+newtype ObjValue = ObjVal (Map.Map Ident Value) -- Object_value Map{fieldname -> value}
   deriving (Show, Eq)
 
+type Env = (Map.Map Ident Value) -- Map{variable -> value}
+
+data State = State { free :: Address, store :: Map.Map Address ObjValue}
+  deriving (Show, Eq)
+ 
 type Result = (Value, State)
 
 type Cont a = a -> State -> Result
@@ -50,17 +52,14 @@ eval (Field obj field) env s k = case eval obj env s k of
   (PtrVal ptr, State free store) -> let ObjVal valAtPtr = store Map.! ptr in
     k (valAtPtr Map.! field) (State free store)
   _ -> k (error "Non-object value") s
-eval (SetField address field expr) env (State f s) k = 
-  let ObjVal objVal = s Map.! address in
-  let fieldVal = fst $ eval expr env (State f s) k in
-  let objVal' = ObjVal $ Map.insert field fieldVal objVal in
-  let s' = State {free = f, store = Map.insert address objVal' s} in 
-    k (PtrVal address) s' -- what should be the output?
-
+eval (SetField obj field expr) env s k = case eval obj env s k of
+  (PtrVal address, State f s) ->
+    let ObjVal objVal = s Map.! address in
+    let fieldVal = fst $ eval expr env (State f s) k in
+    let objVal' = ObjVal $ Map.insert field fieldVal objVal in
+    let s' = State {free = f, store = Map.insert address objVal' s} in 
+      k fieldVal s' 
 
 evalMultiple :: [Expr] -> Env -> State -> Cont [Value] -> Result
 evalMultiple [] env s k = k [] s
 evalMultiple (arg : args) env s k = eval arg env s (\argVal s -> evalMultiple args env s (\restVals s -> k (argVal : restVals) s))
-
-getAdress :: Value -> State -> [Address]
-getAdress objVal (State f s) = Map.keys $ Map.filter (== objVal) s

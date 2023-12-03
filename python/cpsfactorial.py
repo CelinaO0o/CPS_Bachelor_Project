@@ -1,5 +1,7 @@
 
-from dataclasses import dataclass # non cps function ######################################################################################################
+from dataclasses import dataclass
+from typing import Callable 
+# non cps function ######################################################################################################
 # def fact(n):
 #     if n == 1:
 #         return 1
@@ -37,25 +39,26 @@ from dataclasses import dataclass # non cps function ###########################
 
 @dataclass
 class Goto:
-    fun: any
-    args: any
+    fun: Callable
+    args: list[int | Callable]
     
-def fact_tramp(n : int, cont) -> Goto:
+def factCPS(n : int, cont: Callable) -> Goto:
     if n == 1:
         return Goto(cont, [1])
     else:
-        return Goto(fact_tramp, [(n-1), lambda x : Goto(cont, [n*x])])
+        return Goto(factCPS, 
+                    [(n-1), lambda x : Goto(cont, [n*x])])
     
-def trampolien(fun, *args):
+def trampoline(fun, *args):
     v = fun(*args)
     while isinstance(v, Goto):
         v = v.fun(*v.args)
     return v
 
-print(trampolien(fact_tramp, 2000, lambda x: x)) # info liegt auf dem heap, stack frame verweist darauf
+print(trampoline(factCPS, 200, lambda x: x)) # info lies on the heap, stack frame points to heap
 
 # attempt at list-free cps #########################################
-# WHY DOES THIS WORK
+# like dataclasses, wrapping within a function saves arguments/data/etc within one stack frame instead of growing the stack
 # def fact_cps(n, cont): # add continuation parameter
 #     if n == 1:
 #         return cont(1) # pass variable to cont

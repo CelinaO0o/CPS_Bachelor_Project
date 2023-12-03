@@ -4,9 +4,9 @@ factorial :: Integral a => a -> a
 factorial 0 = 1
 factorial n = n * factorial (n-1)
 
-factorial_cps :: Integral a => a -> (a -> b) -> b
-factorial_cps 0 cont = cont 1
-factorial_cps n cont = factorial_cps (n-1) (\x -> cont (n * x))
+factorialCps :: Integral a => a -> (a -> b) -> b
+factorialCps 0 cont = cont 1
+factorialCps n cont = factorialCps (n-1) (\x -> cont (n * x))
     
 -- TCO pushes info as lambdas onto heap 
 fibonacci :: Integral a => a -> a
@@ -14,10 +14,10 @@ fibonacci n
     | n < 2 = 1
     | otherwise = fibonacci (n-1) + fibonacci (n-2)
 
-fibonacci_cps :: Integral a => a -> (a -> b) -> b
-fibonacci_cps n cont
+fibonacciCps :: Integral a => a -> (a -> b) -> b
+fibonacciCps n cont
     | n < 2 = cont 1
-    | otherwise = fibonacci_cps (n-1) (\left -> fibonacci_cps (n-2) (\right -> cont (left + right)))
+    | otherwise = fibonacciCps (n-1) (\left -> fibonacciCps (n-2) (\right -> cont (left + right)))
 
 
 removeFirst :: Eq a => a -> [a] -> [a]
