@@ -39,7 +39,6 @@ eval (App fun args) env = do
 eval (Obj obj) env = do
     objVals <- evalFields obj env
     return (ObjVal objVals)
--- why does eval (Obj obj) env = return (ObjVal (evalFields obj env)) not work?
 eval (Field expr field) env = do
     fieldVal <- eval expr env
     case fieldVal of

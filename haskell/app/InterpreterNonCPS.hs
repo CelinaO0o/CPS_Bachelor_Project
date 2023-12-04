@@ -7,21 +7,21 @@ import Control.Monad.Trans.State hiding (State)
 
 type Ident = String
 
-data Expr = Const Int
-          | Var Ident
-          | Add Expr Expr
-          | Fun [Ident] Expr
-          | App Expr [Expr]
-          | Obj [(Ident, Expr)]
-          | Field Expr Ident
+data Expr = Const Int                -- a constant integer
+          | Var Ident                -- a string variable
+          | Add Expr Expr            -- Addition of two expressions
+          | Fun [Ident] Expr         -- Function [parameters] functionbody
+          | App Expr [Expr]          -- Application function [argumentvalues] 
+          | Obj [(Ident, Expr)]      -- Object [(fieldname, value)]
+          | Field Expr Ident         -- Field object fieldname
   deriving (Show, Eq)
 
-data Value = NumVal Int
-           | FunVal [Ident] Expr Env 
-           | ObjVal [(Ident, Value)]
+data Value = NumVal Int              -- Numeric Value
+           | FunVal [Ident] Expr Env -- Function_value [parameters] functionbody environment
+           | ObjVal [(Ident, Value)] -- Object_value [(fieldname, value)]
   deriving (Show, Eq)
 
-type Env = [(Ident, Value)]
+type Env = [(Ident, Value)]          -- [(variable, value)]
 
 
 eval :: Expr -> Env -> Value
@@ -40,7 +40,7 @@ eval (Field expr field) env =  case eval expr env of
   _ -> error "Non-object value"
 
 
--- (incomplete) Implementation of State
+-- Implementation of State (incomplete)
 
 -- type Ident = String
 

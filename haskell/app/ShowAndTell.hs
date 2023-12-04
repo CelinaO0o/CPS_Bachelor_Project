@@ -2,7 +2,10 @@ module ShowAndTell where
 
 import InterpreterCPS as CPS
 import InterpreterNonCPS as NCPS
+import InterpreterMonadic as Monadic
 import qualified Data.Map as Map
+import Control.Monad.Trans.Cont (ContT(runContT))
+import Data.Maybe
 
 
 constants:: IO ()
@@ -68,11 +71,18 @@ fields = do
     putStr "objfield1 = "
     print $ NCPS.eval objfield1 env
 
+    
+-- printCont :: IO (Cont CPS.Value Result)
+-- printCont val s = do
+--     putStrLn $ "Result: " ++ show val
+--     (val, s)
+
 compareCPS :: IO ()
 compareCPS = do
     
     let s = CPS.State {CPS.free = 0, CPS.store = Map.empty}
     let k v s = (v, s)
+    
     let env = Map.empty
 
     putStrLn "\n-------- Constant evaluation: ----------------------------"
@@ -130,3 +140,57 @@ setfield = do
     let setField = CPS.SetField (CPS.Var "obj") "field1" (CPS.Var "y")
     putStr "objfield1 = "
     print $ CPS.eval setField env' s' k
+
+compareMonadic :: IO ()
+compareMonadic = do
+    let k = Just
+
+    putStrLn "\n-------- Constant evaluation: ----------------------------"
+    putStr "5 = "
+    print $ runContT (Monadic.eval (Monadic.Const 5) []) k
+
+    putStrLn "\n-------- Variable evaluation: ----------------------------"
+    putStrLn "let x = 1 and y = 2"
+    let env = [("x", Monadic.NumVal 1), ("y", Monadic.NumVal 2)]
+    putStr "x = "
+    print $ runContT (Monadic.eval (Monadic.Var "x") env) k
+
+    putStrLn "\n-------- Addition evaluation: ----------------------------"
+    putStr "5 + 2 = "
+    print $ runContT (Monadic.eval (Monadic.Add (Monadic.Const 5) (Monadic.Const 2)) []) k
+    let env = [("y", Monadic.NumVal 2)]
+    putStr "5 + y = "
+    print $ runContT (Monadic.eval (Monadic.Add (Monadic.Const 5) (Monadic.Var "y")) env) k
+
+    putStrLn "\n-------- Function evaluation: ----------------------------"
+    putStrLn "let f = x + y, x = 1 and y = 2"
+    let f = Monadic.Fun ["x", "y"] (Monadic.Add (Monadic.Var "x") (Monadic.Var "y"))
+    let env = [("x", Monadic.NumVal 1), ("y", Monadic.NumVal 2)]
+    putStr "f = "
+    print $ runContT (Monadic.eval f env) k
+
+    putStrLn "\n-------- Function application evaluation: ----------------"
+    putStrLn "let f = x + y, x = 1 and y = 2"
+    let f = Monadic.Fun ["x", "y"] (Monadic.Add (Monadic.Var "x") (Monadic.Var "y"))
+    let env = [("x", Monadic.NumVal 1), ("y", Monadic.NumVal 2)]
+    putStr "f(1,2) = "
+    print $ runContT (Monadic.eval (Monadic.App f [Monadic.Var "x", Monadic.Var "y"]) env) k
+
+    putStrLn "\n-------- Object evaluation: ------------------------------"
+    putStrLn "let obj = Object {'field0' = 5, 'field1' = x} and x = 1"
+    let obj = Monadic.Obj [("field0", Monadic.Const 5), ("field1", Monadic.Var "x")]
+    let env = [("x", Monadic.NumVal 1)]
+    putStr "obj = "
+    print $ runContT (Monadic.eval obj env) k
+
+    -- putStrLn "\n-------- Object field evaluation: ------------------------"
+    -- putStrLn "let obj = Object {'field0' = 5, 'field1' = x} and x = 1"
+    -- let obj = Monadic.Obj [("field0", Monadic.Const 5), ("field1", Monadic.Var "x")]
+    -- let objVal = fromMaybe error (runContT (Monadic.eval obj env) k)
+    -- let env = [("obj", objVal), ("x", Monadic.NumVal 1)]
+    -- let objfield0 = Monadic.Field (Monadic.Var "obj") "field0"
+    -- let objfield1 = Monadic.Field (Monadic.Var "obj") "field1"
+    -- putStr "objfield0 = "
+    -- print $ Monadic.eval objfield0 env
+    -- putStr "objfield1 = "
+    -- print $ Monadic.eval objfield1 env

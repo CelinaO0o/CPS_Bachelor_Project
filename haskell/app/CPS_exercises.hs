@@ -8,7 +8,6 @@ factorialCps :: Integral a => a -> (a -> b) -> b
 factorialCps 0 cont = cont 1
 factorialCps n cont = factorialCps (n-1) (\x -> cont (n * x))
     
--- TCO pushes info as lambdas onto heap 
 fibonacci :: Integral a => a -> a
 fibonacci n 
     | n < 2 = 1

@@ -17,8 +17,8 @@ build-type:          Simple
 extra-source-files:  CHANGELOG.md
 
 executable haskell
-  main-is:             Tests.hs
-  other-modules:       InterpreterNonCPS, InterpreterCPS, InterpreterMonadic, ShowAndTell
+  main-is:             ShowAndTell.hs
+  other-modules:       InterpreterNonCPS, InterpreterCPS, InterpreterMonadic, Tests, InterpreterCPSold
   -- other-extensions:
   build-depends:       base, mtl, containers, ghc-heap, QuickCheck, transformers
   hs-source-dirs:      app
