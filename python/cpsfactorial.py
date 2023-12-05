@@ -17,7 +17,7 @@ def factCPS0(n, cont): # add continuation parameter
                                                       # cont only ever takes one arg
                                                       # outermost action of new cont is to pass to current cont
     
-# and now to handle rekursion using dataclasses ###########################################################################################
+# and now to handle rekursion using dataclasses ##########################################################################
 @dataclass
 class Goto:
     fun: Callable
@@ -36,7 +36,7 @@ def trampoline0(fun, *args): # info lies on the heap, stack frame points to heap
         v = v.fun(*v.args)
     return v
 
-# using lists #########################################
+# using lists ############################################################################################################
 def factCPS2(n, cont): 
     if n == 1:
         return ['apply-cont', cont, 1] # substitute direkt passing with list element
@@ -51,7 +51,7 @@ def trampoline1(result): # add trampoline funktion to control flow, turn rekusio
             result = result[1](result[2], result[3])
     return result
 
-# using functions #########################################
+# using functions #########################################################################################################
 # like dataclasses, wrapping within a function saves arguments/data/etc within one stack frame instead of growing the stack
 
 def factCPS3(n, cont): # add continuation parameter
