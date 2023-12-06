@@ -72,12 +72,6 @@ fields = do
     putStr "objfield1 = "
     print $ NCPS.eval objfield1 env
 
-    
--- printCont :: IO (Cont CPS.Value Result)
--- printCont val s = do
---     putStrLn $ "Result: " ++ show val
---     (val, s)
-
 compareCPS :: IO ()
 compareCPS = do
     
@@ -138,6 +132,7 @@ setfield = do
     let env' = Map.insert "obj" objVal env
 
     putStrLn "\n-------- Set Object field: -------------------------------"
+    putStrLn "let field1 = y"
     let setField = CPS.SetField (CPS.Var "obj") "field1" (CPS.Var "y")
     putStr "objfield1 = "
     print $ CPS.eval setField env' s' k

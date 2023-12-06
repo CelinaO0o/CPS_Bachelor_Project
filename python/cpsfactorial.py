@@ -18,8 +18,6 @@ def factCPS0(n, k):  # add continuation parameter
         return k(1)  # pass variable to cont
     else:
         return factCPS0(n - 1, lambda x: k(x * n))  # call the rekursion with new cont that continues the computation
-                                                       # cont only ever takes one arg
-                                                       # outermost action of new cont is to pass to current cont
 
 # and now to handle rekursion using dataclasses ##########################################################################
 

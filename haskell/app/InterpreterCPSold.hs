@@ -2,7 +2,9 @@ module InterpreterCPSold where
 import Data.Maybe ( fromMaybe )
 import qualified Data.Map as Map
 import Test.QuickCheck hiding (Fun)
+
 -- CPS Interpreter, explicit Cont
+
 type Ident = String
 data Expr = Const Int                -- a constant integer
           | Var Ident                -- a string variable

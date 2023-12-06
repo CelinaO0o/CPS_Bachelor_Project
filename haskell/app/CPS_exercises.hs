@@ -4,7 +4,7 @@ factorial :: Integral a => a -> a
 factorial 0 = 1
 factorial n = n * factorial (n-1)
 
-factorialCPS :: Integral a => a -> (a -> b) -> b
+factorialCPS :: Integral a => a -> (a -> a) -> a
 factorialCPS 0 k = k 1
 factorialCPS n k = factorialCPS (n-1) (\x -> k (n * x))
     
