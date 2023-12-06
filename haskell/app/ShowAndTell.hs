@@ -3,6 +3,7 @@ module ShowAndTell where
 import InterpreterCPS as CPS
 import InterpreterNonCPS as NCPS
 import InterpreterMonadic as Monadic
+import CPS_exercises (factorial, factorialCPS)
 import qualified Data.Map as Map
 import Control.Monad.Trans.Cont (ContT(runContT))
 import Data.Maybe

@@ -4,19 +4,19 @@ factorial :: Integral a => a -> a
 factorial 0 = 1
 factorial n = n * factorial (n-1)
 
-factorialCps :: Integral a => a -> (a -> b) -> b
-factorialCps 0 cont = cont 1
-factorialCps n cont = factorialCps (n-1) (\x -> cont (n * x))
+factorialCPS :: Integral a => a -> (a -> b) -> b
+factorialCPS 0 k = k 1
+factorialCPS n k = factorialCPS (n-1) (\x -> k (n * x))
     
 fibonacci :: Integral a => a -> a
 fibonacci n 
     | n < 2 = 1
     | otherwise = fibonacci (n-1) + fibonacci (n-2)
 
-fibonacciCps :: Integral a => a -> (a -> b) -> b
-fibonacciCps n cont
+fibonacciCPS :: Integral a => a -> (a -> b) -> b
+fibonacciCPS n cont
     | n < 2 = cont 1
-    | otherwise = fibonacciCps (n-1) (\left -> fibonacciCps (n-2) (\right -> cont (left + right)))
+    | otherwise = fibonacciCPS (n-1) (\left -> fibonacciCPS (n-2) (\right -> cont (left + right)))
 
 
 removeFirst :: Eq a => a -> [a] -> [a]
